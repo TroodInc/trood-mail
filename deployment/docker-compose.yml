@@ -1,0 +1,32 @@
+version: "2"
+
+services:
+  mail:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}.mail
+    volumes:
+      - ../:/home/src
+    environment:
+      DJANGO_CONFIGURATION: Production
+    networks:
+      - ${COMPOSE_PROJECT_NAME}-network
+
+  mail_postgres:
+    image: postgres:9.5
+    container_name: ${COMPOSE_PROJECT_NAME}.mail.postgres
+    environment: 
+      CONTAINER_NAME: ${COMPOSE_PROJECT_NAME}.mail.postgres
+    volumes:
+      - ./postgres/${CONTAINER_NAME}/data:/var/lib/postgresql/data
+      - ./postgres/${CONTAINER_NAME}/conf:/etc/postgresql
+      - ./postgres/${CONTAINER_NAME}/logs:/var/log/postgresql
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_DB: mail
+      POSTGRES_USER: mail
+      POSTGRES_PASSWORD: mail
+
+    networks:
+      - ${COMPOSE_PROJECT_NAME}-network
