@@ -1,20 +1,44 @@
 from datetime import datetime
-from django_mailbox.models import Mailbox, Message
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
-from mail.api.models import Folder, Contact
+from mail.api.models import Folder, Contact, AssignContactToFolder, Mail, \
+    CustomMailbox
 
 
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ("id", "name", "mailbox")
+        fields = ("id", "name", "mailbox", )
 
 
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ("id", "email", "name", )
+        fields = ("id", "email", "name", "folder")
+
+
+class BulkAssignSerializer(serializers.Serializer):
+    contacts = serializers.ListField(serializers.IntegerField())
+
+    class Meta:
+        fields = ('contacts',)
+
+    def to_internal_value(self, data):
+        contact_ids = data.get('contacts')
+        if not contact_ids:
+            raise ValidationError({'contacts': 'Contacts is empty'})
+        contacts = list(Contact.objects.in_bulk(contact_ids).values())
+        internalized_data = data.copy()
+        internalized_data['contacts'] = contacts
+        return internalized_data
+
+
+class AssignContactToFolderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssignContactToFolder
+        fields = ('id', 'contact', 'folder')
+        extra_kwargs = {'folder': {'read_only': True}}
 
 
 class NewMailSerializer(serializers.Serializer):
@@ -23,24 +47,17 @@ class NewMailSerializer(serializers.Serializer):
 
 class MailSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Message
+        model = Mail
         fields = (
             "id", "mailbox", "subject", "body", "encoded",  "from_address", "to_addresses",
-            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments")
+            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments", )
         read_only_fields = (
             "id", "mailbox", "subject", "body", "encoded",  "from_address", "to_addresses",
-            "outgoing", "in_reply_to", "replies", "attachments"
+            "outgoing", "in_reply_to", "replies", "attachments",
         )
-
-    def to_representation(self, instance):
-        res = super(MailSerializer, self).to_representation(instance)
-        res["folder"] = None if not len(res["folder"]) else res["folder"][0]
-
-        return res
 
     def to_internal_value(self, data):
         read = data.get("read", None)
-        data["folder"] = [data["folder"]]
 
         if read:
             data['read'] = datetime.now()
@@ -72,7 +89,7 @@ class MailboxSerializer(serializers.ModelSerializer):
     type = serializers.ChoiceField(choices=TRANSPORT_TYPES)
 
     class Meta:
-        model = Mailbox
+        model = CustomMailbox
         fields = ("id", "name", "active", "email", "password", "host", "port", "type", "last_polling")
 
     def to_internal_value(self, data):
@@ -92,3 +109,11 @@ class MailboxSerializer(serializers.ModelSerializer):
         data['uri'] = "{}{}://{}:{}@{}:{}".format(transport, secure, username, password, host, port)
 
         return data
+
+
+class MoveMailsToFolderSerializer(serializers.ModelSerializer):
+    messages = serializers.ListField(child=serializers.IntegerField())
+
+    class Meta:
+        model = Folder
+        fields = ('messages',)

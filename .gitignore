@@ -1,3 +1,6 @@
 .fromgit
 *.pyc
+.idea/*
+
 deployment/postgres
+mail/local_settings.py

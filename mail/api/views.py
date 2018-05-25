@@ -1,15 +1,18 @@
-from django_mailbox.models import Mailbox, Message
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import detail_route, list_route
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.response import Response
-
-from mail.api.models import Folder, Contact
-from mail.api.serializers import MailboxSerializer, MailSerializer, FolderSerializer, ContactSerializer
+from rest_framework.status import HTTP_200_OK
+from mail.api.models import Folder, Contact, AssignContactToFolder, \
+    ModelApiError, Mail, CustomMailbox
+from mail.api.serializers import MailboxSerializer, MailSerializer, \
+    FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
+    BulkAssignSerializer
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
-    queryset = Mailbox.objects.all()
+    queryset = CustomMailbox.objects.all()
     serializer_class = MailboxSerializer
     # permission_classes = (IsAuthenticated, )
 
@@ -18,13 +21,12 @@ class MailboxViewSet(viewsets.ModelViewSet):
         mailbox = self.get_object()
         mails, new_contacts = self._fetch_mailbox(mailbox)
 
-        return Response({
-            "status": "OK",
-            "data": {
-                "mails received": len(mails),
-                "contacts added": new_contacts
-            }
-        })
+        data = {
+            "mails received": len(mails),
+            "contacts added": new_contacts
+        }
+
+        return Response(data, status=HTTP_200_OK)
 
     @list_route(methods=["POST"])
     def fetchall(self, request):
@@ -36,13 +38,12 @@ class MailboxViewSet(viewsets.ModelViewSet):
             mails_total += len(mails)
             contast_total += new_contacts
 
-        return Response({
-            "status": "OK",
-            "data": {
-                "mails received": mails_total,
-                "contacts added": contast_total
-            }
-        })
+        data = {
+            "mails received": mails_total,
+            "contacts added": contast_total
+        }
+
+        return Response(data, status=HTTP_200_OK)
 
     def _fetch_mailbox(self, mailbox):
         mails = mailbox.get_new_mail()
@@ -50,15 +51,28 @@ class MailboxViewSet(viewsets.ModelViewSet):
         new_contacts = 0
         for mail in mails:
             for address in mail.address:
-                c, created = Contact.objects.get_or_create(email=address)
+                contact, created = Contact.objects.get_or_create(email=address)
+                mail, contact = \
+                    self._move_mail_to_folder_assigned_to(mail, contact)
                 if created:
                     new_contacts += 1
 
         return mails, new_contacts
 
+    def _move_mail_to_folder_assigned_to(self, mail, contact):
+        try:
+            folder = contact.folder
+            folder.messages.add(mail)
+            folder.save()
+        except AssignContactToFolder.DoesNotExist:
+            # TODO Log here
+            pass
+        finally:
+            return mail, contact
+
 
 class MailViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
+    queryset = Mail.objects.all()
     serializer_class = MailSerializer
     # permission_classes = (IsAuthenticated, )
 
@@ -71,8 +85,84 @@ class FolderViewSet(viewsets.ModelViewSet):
     serializer_class = FolderSerializer
     # permission_classes = (IsAuthenticated, )
 
+    @detail_route(methods=['POST'], url_path='bulk-move')
+    def bulk_move(self, request, *args, **kwargs):
+        folder = self.get_object()
+        serializer = MoveMailsToFolderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message_ids = serializer.validated_data['messages']
+        existing_message_ids = set(folder.messages.values_list('id', flat=True))
+        movable_message_ids = set(message_ids)
+        moved_message_ids = list(
+            movable_message_ids.difference(existing_message_ids))
+
+        if moved_message_ids:
+            try:
+                with transaction.atomic():
+                    for message_id in moved_message_ids:
+                        message = Mail.objects.get(id=message_id)
+                        message.folder = folder
+                        message.save()
+
+            except Mail.DoesNotExist as e:
+                    raise ValidationError(f'There is a problem to move '
+                                          f'messages {moved_message_ids} '
+                                          f'to folder {folder.id}')
+
+        data = dict(serializer.data)
+        data.update({'moved_messages': moved_message_ids})
+
+        return Response(data, status=HTTP_200_OK)
+
+    @detail_route(methods=['PATCH'], url_path='bulk-assign')
+    def bulk_assign(self, request, *args, **kwargs):
+        folder = self.get_object()
+        serializer = BulkAssignSerializer(data=request.data, partial=True)
+        serializer.is_valid()
+        contacts = serializer.validated_data['contacts']
+        for contact in contacts:
+            try:
+                with transaction.atomic():
+                    contact.assign_to(folder=folder)
+            except ModelApiError as e:
+                raise ParseError(detail=str(e))
+        return Response(ContactSerializer(contacts, many=True).data,
+                        status=HTTP_200_OK)
+
+    @detail_route(methods=['PATCH'], url_path='bulk-unassign')
+    def bulk_unassign(self, request, *args, **kwargs):
+        serializer = BulkAssignSerializer(data=request.data, partial=True)
+        serializer.is_valid()
+        contacts = serializer.validated_data['contacts']
+        for contact in contacts:
+            try:
+                with transaction.atomic():
+                    contact.assign_to(folder=None)
+            except ModelApiError as e:
+                raise ParseError(detail=str(e))
+        return Response(ContactSerializer(contacts, many=True).data,
+                        status=HTTP_200_OK)
+
 
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     # permission_classes = (IsAuthenticated, )
+
+    def update(self, request, *args, **kwargs):
+        contact = self.get_object()
+
+        serializer = ContactSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        folder = serializer.validated_data.get('folder')
+        try:
+            with transaction.atomic():
+                contact.assign_to(folder=folder)
+        except ModelApiError as e:
+            raise ParseError(detail=str(e))
+
+        response_data = ContactSerializer(instance=contact).data
+
+        return Response(response_data, status=HTTP_200_OK)
