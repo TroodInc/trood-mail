@@ -119,4 +119,8 @@ USE_L10N = True
 
 USE_TZ = True
 
+REST_FRAMEWORK = {
+    'PAGINATE_BY': 10,
+}
+
 
