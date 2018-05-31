@@ -4,7 +4,7 @@ from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
-from mail.api.models import Folder, Contact, AssignContactToFolder, \
+from mail.api.models import Folder, Contact, \
     ModelApiError, Mail, CustomMailbox
 from mail.api.serializers import MailboxSerializer, MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
@@ -64,7 +64,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
             folder = contact.folder
             folder.messages.add(mail)
             folder.save()
-        except AssignContactToFolder.DoesNotExist:
+        except Exception:
             # TODO Log here
             pass
         finally:
