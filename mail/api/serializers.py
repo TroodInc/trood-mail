@@ -2,7 +2,7 @@ from datetime import datetime
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from mail.api.models import Folder, Contact, AssignContactToFolder, Mail, \
+from mail.api.models import Folder, Contact, Mail, \
     CustomMailbox
 
 
@@ -32,13 +32,6 @@ class BulkAssignSerializer(serializers.Serializer):
         internalized_data = data.copy()
         internalized_data['contacts'] = contacts
         return internalized_data
-
-
-class AssignContactToFolderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AssignContactToFolder
-        fields = ('id', 'contact', 'folder')
-        extra_kwargs = {'folder': {'read_only': True}}
 
 
 class NewMailSerializer(serializers.Serializer):

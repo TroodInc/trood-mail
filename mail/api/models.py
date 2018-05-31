@@ -88,14 +88,3 @@ class Contact(models.Model):
         else:
             self.folder = folder
             self.save()
-
-
-class AssignContactToFolder(models.Model):
-    contact = models.ForeignKey(Contact, null=False, related_name='contacts')
-    folder = models.ForeignKey(Folder, null=False, related_name='folders')
-
-    class Meta:
-        unique_together = (('contact', 'folder'),)
-
-    def __str__(self):
-        return f'{self.contact.email}:{self.folder.name}'
