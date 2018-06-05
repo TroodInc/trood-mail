@@ -8,7 +8,9 @@ RUN apt-get update && \
 
 WORKDIR $APPDIR
 
-ADD ./ $APPDIR/
+COPY ./mail $APPDIR/mail
+COPY ./manage.py $APPDIR/
+COPY ./requirements.txt $APPDIR/
 RUN pip install -r $APPDIR/requirements.txt
 
 EXPOSE 8000
