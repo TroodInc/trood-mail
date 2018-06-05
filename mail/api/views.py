@@ -6,20 +6,23 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
 from mail.api.models import Folder, Contact, \
     ModelApiError, Mail, CustomMailbox
-from mail.api.serializers import MailboxSerializer, MailSerializer, \
+from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
-    BulkAssignSerializer
+    BulkAssignSerializer, TroodMailboxSerializer
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
     queryset = CustomMailbox.objects.all()
-    serializer_class = MailboxSerializer
+    serializer_class = TroodMailboxSerializer
     # permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=["POST"])
     def fetch(self, request, pk=None):
         mailbox = self.get_object()
-        mails, new_contacts = self._fetch_mailbox(mailbox)
+
+        print(mailbox.inbox.uri)
+
+        mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
 
         data = {
             "mails received": len(mails),
@@ -34,7 +37,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
 
         mails_total = contast_total = 0
         for mailbox in queryset.filter(actile=True):
-            mails, new_contacts = self._fetch_mailbox(mailbox)
+            mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
             mails_total += len(mails)
             contast_total += new_contacts
 
@@ -76,8 +79,11 @@ class MailViewSet(viewsets.ModelViewSet):
     serializer_class = MailSerializer
     # permission_classes = (IsAuthenticated, )
 
-    def create(self, request, *args, **kwargs):
-        pass
+    def perform_create(self, serializer):
+        mail = serializer.save()
+
+        if not mail.draft:
+            mail.send()
 
 
 class FolderViewSet(viewsets.ModelViewSet):

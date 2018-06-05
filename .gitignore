@@ -1,6 +1,7 @@
 .fromgit
 *.pyc
 .idea/*
+.pytest_cache/
 
 deployment/postgres
 mail/local_settings.py
