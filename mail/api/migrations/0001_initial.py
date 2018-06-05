@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('django_mailbox', '0007_auto_20180529_1124'),
+        ('django_mailbox', '__latest__'),
     ]
 
     operations = [

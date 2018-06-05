@@ -159,6 +159,7 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert response.data['id'] == mail_id
         assert response.data['folder'] == folder.id
 
+
     def tearDown(self):
         self.maildir.delete()
 
