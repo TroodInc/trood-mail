@@ -10,7 +10,10 @@ from django_mailbox.models import Mailbox
 from trood_auth_client.authentication import TroodUser
 
 from mail.api.models import CustomMailbox
+import tempfile
+import base64
 
+from django.core.files import File
 
 trood_user = TroodUser({
     "id": 1,
@@ -60,3 +63,23 @@ class Maildir:
         with open(mail_path, 'w') as f:
             f.write(content)
         return mail_path
+
+
+def create_temp_file(ext='.txt', data=None):
+    _, filename = tempfile.mkstemp(ext)
+    if data:
+        tmp_file = open(filename, 'wb')
+        tmp_file.write(base64.b64decode(data))
+    else:
+        tmp_file = open(filename, 'w')
+        tmp_file.write('abcdef')
+
+    tmp_file.close()
+    tmp_file = open(filename, 'rb')
+    return tmp_file, filename
+
+
+def create_django_temp_file(ext):
+    file, path = create_temp_file(ext)
+    django_file = File(open(file.name, "rb"))
+    return django_file

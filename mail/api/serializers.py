@@ -1,7 +1,8 @@
 import smtplib
 from datetime import datetime
 
-from django_mailbox.models import Mailbox
+from django.core.files.storage import default_storage
+from django_mailbox.models import Mailbox, MessageAttachment
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -46,10 +47,22 @@ class BulkAssignSerializer(serializers.Serializer):
         return internalized_data
 
 
+class AttachmentsSerializer(serializers.ModelSerializer):
+    # @todo: Fix to deal with default filestorage not only TroodFile
+
+    class Meta:
+        model = MessageAttachment
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        return instance.document.file.meta
+
+
 class MailSerializer(serializers.ModelSerializer):
     to = EmailsListHeaderField(source="to_header")
     bcc = EmailsListHeaderField(required=False)
     created_at = serializers.DateTimeField(source="processed", read_only=True)
+    attachments = AttachmentsSerializer(many=True, required=False)
 
     class Meta:
         model = Mail
@@ -57,8 +70,7 @@ class MailSerializer(serializers.ModelSerializer):
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
             "read", "outgoing", "in_reply_to", "replies", "folder", "attachments", "created_at")
         read_only_fields = (
-            "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies", "attachments",
-            "created_at",
+            "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies",  "created_at",
         )
 
     def to_representation(self, instance):
@@ -78,9 +90,23 @@ class MailSerializer(serializers.ModelSerializer):
         if mailbox:
             data['mailbox'] = CustomMailbox.objects.get(pk=mailbox).inbox.id
 
+        attachments = data.pop("attachments", [])
+
         data = super(MailSerializer, self).to_internal_value(data)
 
+        data['attachments'] = attachments
+
         return data
+
+    def create(self, validated_data):
+        attachments = validated_data.pop("attachments", [])
+        instance = super(MailSerializer, self).create(validated_data)
+
+        for attachment in attachments:
+            obj = MessageAttachment.objects.create(message=instance)
+            obj.document.save(attachment, default_storage.open(attachment), save=True)
+
+        return instance
 
 
 class InboxSerializer(serializers.ModelSerializer):

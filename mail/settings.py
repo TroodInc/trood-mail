@@ -167,6 +167,12 @@ class BaseConfiguration(Configuration):
     SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
     SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
 
+    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
+    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
+
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    MEDIA_URL = '/media/'
+
 
 class Development(BaseConfiguration):
     DEBUG = True
