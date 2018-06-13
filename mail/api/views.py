@@ -20,8 +20,6 @@ class MailboxViewSet(viewsets.ModelViewSet):
     def fetch(self, request, pk=None):
         mailbox = self.get_object()
 
-        print(mailbox.inbox.uri)
-
         mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
 
         data = {

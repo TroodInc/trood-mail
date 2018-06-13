@@ -7,6 +7,7 @@ import uuid
 
 from string import Template
 
+from django_mailbox.models import Mailbox
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
@@ -30,17 +31,19 @@ class Maildir:
 
         # To let maildir protocol works,
         # there are should be new,cur dirs in local mail dir path
-        self.mailbox = CustomMailbox.objects.create(uri='maildir://' + self.box_path)
+        inbox = Mailbox.objects.create(uri='maildir://' + self.box_path)
+        self.mailbox = CustomMailbox.objects.create(inbox=inbox)
 
     def delete(self):
         # Should be invoked explicitly,
         # otherwise maildir folder structure will stay in system
         shutil.rmtree(self.box_path)
 
-    def create_mail(self, contact_name, contact_mail):
+    def create_mail(self, contact_name, contact_mail,
+                    email_template='generic_message_template.eml'):
         template_path = os.path.join(os.path.dirname(__file__),
                                      'messages',
-                                     'generic_message_template.eml')
+                                     email_template)
         template_file = open(template_path)
         src = Template(template_file.read())
         result = src.substitute({'contact_name': contact_name,
@@ -77,14 +80,15 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
 
     def test_create_mailbox(self):
         request_data = {
-            'name': 'cool',
-            'email': 'test@gmail.com',
-            'password': 'qazxqazx',
-            'type': 'imap',
-            'host': 'imap.gmail.com',
-            'port': 993,
-            'secure': 'ssl',
-            'active': True
+            "name": "cool",
+            "email": "testmirrorcx@gmail.com",
+            "password": "qazxqazx",
+            "imap_host": "imap.gmail.com",
+            "imap_port": 993,
+            "smtp_host": "smtp.google.com",
+            "smtp_port": 578,
+            "secure": "ssl",
+            "active": True
         }
         response = self.client.post('/api/v1.0/mailboxes/', request_data, format='json')
         assert response.status_code == HTTP_201_CREATED
@@ -93,7 +97,10 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         content = self.maildir.create_mail('eugene', 'dharmagetic@gmail.com')
         mail = self.maildir.send_mail(content)
 
-        response = self.client.post(f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/', format='json')
+        response = self.client.post(
+            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
+            format='json'
+        )
 
         assert response.status_code == HTTP_200_OK
         assert response.data['mails received'] == 1
@@ -141,7 +148,7 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert num_of_mails == len(response.data)
 
     def test_move_single_mail(self):
-        folder = Folder.objects.create(mailbox=self.maildir.mailbox, name='Leads')
+        folder = Folder.objects.create(mailbox=self.maildir.mailbox.inbox, name='Leads')
         contact = Contact.objects.create(email='dharmagetic@gmail.com')
 
         self.send_fetch_email([contact.email])
@@ -158,7 +165,6 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert response.status_code == HTTP_200_OK
         assert response.data['id'] == mail_id
         assert response.data['folder'] == folder.id
-
 
     def tearDown(self):
         self.maildir.delete()
@@ -182,7 +188,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         assert response.data['mailbox'] == self.maildir.mailbox.id
 
     def test_bulk_move_mails_to_folder_not_move_already_moved(self):
-        folder = Folder.objects.create(mailbox=self.maildir.mailbox, name='Leads')
+        folder = Folder.objects.create(mailbox=self.maildir.mailbox.inbox, name='Leads')
         contact = Contact.objects.create(email='dharmagetic@gmail.com')
 
         self.send_fetch_email([contact.email])
@@ -236,7 +242,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
             'messages': message_ids
         }
 
-        folder_leads = Folder.objects.create(mailbox=self.maildir.mailbox,
+        folder_leads = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
                                        name='Leads')
 
         response = self.client.post(
@@ -254,7 +260,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         request_data = {
             'messages': message_ids
         }
-        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox,
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
                                        name='Sales')
         response = self.client.post(
             f'/api/v1.0/folders/{folder_sales.id}/bulk-move/',
@@ -277,7 +283,7 @@ class AssignContactToFolderViewSetTestCase(MailTestMixin, APITestCase):
         self.client = APIClient()
 
     def test_assign_contact_to_folder(self):
-        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox,
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
                                              name='Sales')
         contact = Contact.objects.create(email='dharmagetic@gmail.com',
                                          folder=folder_sales)
@@ -288,7 +294,7 @@ class AssignContactToFolderViewSetTestCase(MailTestMixin, APITestCase):
         assert folder_sales.messages.count() == 1
 
     def test_unassign_contact_from_folder(self):
-        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox,
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
                                              name='Sales')
         contact = Contact.objects.create(email='dharmagetic@gmail.com',
                                          folder=folder_sales)
@@ -305,9 +311,8 @@ class AssignContactToFolderViewSetTestCase(MailTestMixin, APITestCase):
 
         assert folder_sales.messages.count() == 1
 
-
     def test_bulk_unassign_contacts_from_folder(self):
-        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox,
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
                                              name='Sales')
         contact_emails = ['contact_1@sales.ru', 'contact_2@sales.ru',
                           'contact_3@sales.ru']
