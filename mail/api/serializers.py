@@ -58,7 +58,6 @@ class MailSerializer(serializers.ModelSerializer):
             "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies", "attachments",
         )
 
-
     def to_representation(self, instance):
         data = super(MailSerializer, self).to_representation(instance)
         data['mailbox'] = instance.mailbox.mailer.id
@@ -70,7 +69,9 @@ class MailSerializer(serializers.ModelSerializer):
         if read:
             data['read'] = datetime.now()
 
-        data['mailbox'] = CustomMailbox.objects.get(pk=data['mailbox']).inbox.id
+        mailbox = data.get('mailbox', None)
+        if mailbox:
+            data['mailbox'] = CustomMailbox.objects.get(pk=mailbox).inbox.id
 
         data = super(MailSerializer, self).to_internal_value(data)
 

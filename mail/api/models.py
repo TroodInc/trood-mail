@@ -21,8 +21,54 @@ class Folder(models.Model):
         return f'{self.name}'
 
 
+class Inbox(Mailbox):
+    class Meta:
+        proxy = True
+
+    def _process_message(self, message):
+        msg = Mail()
+        settings = utils.get_settings()
+
+        if settings['store_original_message']:
+            self._process_save_original_message(message, msg)
+        msg.mailbox = self
+        if 'subject' in message:
+            msg.subject = (
+                utils.convert_header_to_unicode(message['subject'])[0:255]
+            )
+        if 'message-id' in message:
+            msg.message_id = message['message-id'][0:255].strip()
+        if 'from' in message:
+            msg.from_header = utils.convert_header_to_unicode(message['from'])
+        if 'to' in message:
+            msg.to_header = utils.convert_header_to_unicode(message['to'])
+        elif 'Delivered-To' in message:
+            msg.to_header = utils.convert_header_to_unicode(
+                message['Delivered-To']
+            )
+        msg.save()
+        message = self._get_dehydrated_message(message, msg)
+        try:
+            body = message.as_string()
+        except KeyError as exc:
+            # email.message.replace_header may raise 'KeyError' if the header
+            # 'content-transfer-encoding' is missing
+            logger.warning("Failed to parse message: %s", exc, )
+            return None
+        msg.set_body(body)
+        if message['in-reply-to']:
+            try:
+                msg.in_reply_to = Mail.objects.filter(
+                    message_id=message['in-reply-to'].strip()
+                )[0]
+            except IndexError:
+                pass
+        msg.save()
+        return msg
+
+
 class CustomMailbox(models.Model):
-    inbox = models.OneToOneField(Mailbox, related_name="mailer")
+    inbox = models.OneToOneField(Inbox, related_name="mailer")
     smtp_host = models.CharField(max_length=128)
     smtp_port = models.IntegerField(default=587)
 
@@ -50,7 +96,8 @@ class Mail(Message):
         self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        self.from_header = self.mailbox.from_email
+        if self.outgoing:
+            self.from_header = self.mailbox.from_email
         super(Mail, self).save()
 
 

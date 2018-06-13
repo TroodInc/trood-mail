@@ -9,7 +9,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_mailbox', '0007_auto_20180523_1157'),
+        ('django_mailbox', '__latest__'),
         ('api', '0001_initial'),
     ]
 
