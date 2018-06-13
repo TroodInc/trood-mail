@@ -1,6 +1,9 @@
 import logging
 import smtplib
-from email.message import EmailMessage
+from email.mime.base import MIMEBase
+from email import encoders
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from django.db import models
 from django_mailbox.models import Mailbox, Message
@@ -91,6 +94,18 @@ class Mail(Message):
     def send(self):
         msg = self.get_email_object()
 
+        for attachment in self.attachments.all():
+            meta = attachment.document.file.meta
+
+            file = MIMEBase(*attachment.document.file.type.split('/'), filename=meta['filename'])
+            file.set_payload(attachment.document.file.read())
+            encoders.encode_base64(file)
+
+            file.add_header('Content-Disposition', 'attachment; filename="{}"'.format(meta['filename']))
+            file.add_header('Content-ID', '<{}>'.format(meta['id']))
+            file.add_header('X-Attachment-Id', meta['id'])
+            msg.attach(file)
+
         server = smtplib.SMTP(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
         server.ehlo()
         server.starttls()
@@ -105,16 +120,13 @@ class Mail(Message):
         if self.pk is None and self.outgoing:
             self.from_header = self.mailbox.from_email
 
-            msg = EmailMessage()
+            msg = MIMEMultipart()
             msg["Subject"] = self.subject
             msg["From"] = self.from_header
             msg["To"] = self.to_header
             msg["Bcc"] = self.bcc
 
-            msg.set_type('text/html')
-            msg.set_content(self.body)
-
-            msg.add_alternative(self.body, subtype="html")
+            msg.attach(MIMEText(self.body, "html"))
 
             self.set_body(
                 msg.as_string()
