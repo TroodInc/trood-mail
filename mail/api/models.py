@@ -112,6 +112,9 @@ class Contact(models.Model):
     email = models.EmailField(blank=False, null=True, default=None, unique=True)
     name = models.CharField(max_length=128, null=True)
 
+    class Meta:
+        ordering = ['name']
+
     def assign_to(self, folder=None):
         # Check if assignment already exists for any folder and raise
         if self.folder:
