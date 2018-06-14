@@ -12,6 +12,7 @@ COPY ./mail $APPDIR/mail
 COPY ./manage.py $APPDIR/
 COPY ./requirements.txt $APPDIR/
 COPY ./pytest.ini $APPDIR/
+
 RUN pip install -r $APPDIR/requirements.txt
 
 EXPOSE 8000
