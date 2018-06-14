@@ -124,7 +124,6 @@ class BaseConfiguration(Configuration):
     USE_TZ = True
 
     REST_FRAMEWORK = {
-        'DEFAULT_PAGINATION_CLASS': 'mail.api.pagination.PageNumberPagination',
         'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
     }
 

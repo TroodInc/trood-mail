@@ -78,6 +78,9 @@ class Mail(Message):
     bcc = models.TextField(null=True)
     draft = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['-processed']
+
     def send(self):
         msg = self.get_email_object()
         msg["Subject"] = self.subject

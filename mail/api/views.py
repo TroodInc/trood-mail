@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
 from mail.api.models import Folder, Contact, \
     ModelApiError, Mail, CustomMailbox
+from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
     BulkAssignSerializer, TroodMailboxSerializer
@@ -14,6 +15,7 @@ from mail.api.serializers import MailSerializer, \
 class MailboxViewSet(viewsets.ModelViewSet):
     queryset = CustomMailbox.objects.all()
     serializer_class = TroodMailboxSerializer
+
     # permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=["POST"])
@@ -75,6 +77,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
 class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
+    pagination_class = PageNumberPagination
     filter_fields = ('folder',)
 
     # permission_classes = (IsAuthenticated, )
