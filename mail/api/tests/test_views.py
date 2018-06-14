@@ -8,7 +8,8 @@ import uuid
 from string import Template
 
 from django_mailbox.models import Mailbox
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, \
+    HTTP_404_NOT_FOUND
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 
@@ -71,6 +72,19 @@ class MailTestMixin:
             f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
             format='json')
         return response
+
+    def generate_mails(self, from_contact_name='eugene',
+                       from_contact_email='dharmagetic@gmail.com', count=10):
+        num_of_mails = count
+        for i in range(0, count):
+            content = self.maildir.create_mail(from_contact_name,
+                                               from_contact_email)
+            mail = self.maildir.send_mail(content)
+        # Fetch mail
+        response = self.client.post(
+            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
+            format='json')
+        return count
 
 
 class MailboxViewSetTestCase(MailTestMixin, APITestCase):
@@ -145,7 +159,7 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         # Then gather them
         response = self.client.get(f'/api/v1.0/mails/', format='json')
         assert response.status_code == HTTP_200_OK
-        assert num_of_mails == len(response.data)
+        assert num_of_mails == response.data['count']
 
     def test_move_single_mail(self):
         folder = Folder.objects.create(mailbox=self.maildir.mailbox.inbox, name='Leads')
@@ -155,8 +169,8 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
 
         # Gather mails
         response = self.client.get(f'/api/v1.0/mails/')
-        mail_id = response.data[0]['id']
-        assert response.data[0]['folder'] == None
+        mail_id = response.data['results'][0]['id']
+        assert response.data['results'][0]['folder'] == None
 
         # Move single mail to folder
         response = self.client.patch(f'/api/v1.0/mails/{mail_id}/',
@@ -165,6 +179,45 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert response.status_code == HTTP_200_OK
         assert response.data['id'] == mail_id
         assert response.data['folder'] == folder.id
+
+    def test_pagination_ok(self):
+        generated_mails_count = self.generate_mails(count=25)
+        response = self.client.get(f'/api/v1.0/mails/?page_size=5&page=4',
+                                   format='json')
+        assert response.status_code == HTTP_200_OK
+        assert response.data['count'] == generated_mails_count
+        assert response.data['previous'] == \
+               'http://testserver/api/v1.0/mails/?page=3&page_size=5'
+        assert response.data['next'] == \
+               'http://testserver/api/v1.0/mails/?page=5&page_size=5'
+
+    def test_pagination_fail(self):
+        generated_mails_count = self.generate_mails(count=25)
+        response = self.client.get(f'/api/v1.0/mails/?page_size=50&page=2',
+                                   format='json')
+        assert response.status_code == HTTP_404_NOT_FOUND
+        assert response.data['detail'] == 'Invalid page.'
+
+    def test_filter_by_folder_ok(self):
+        folder_leads = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
+                                       name='Leads')
+        contact_leads = Contact.objects.create(email='lead@gmail.com',
+                                               folder=folder_leads)
+        generated_mails_count_leads = self.generate_mails(from_contact_name='lead',
+                                                         from_contact_email='lead@gmail.com',
+                                                         count=10)
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
+                                       name='Sales')
+        contact_sales = Contact.objects.create(email='sale@gmail.com',
+                                               folder=folder_sales)
+        generated_mails_count_sales = self.generate_mails(
+            from_contact_name='sale',
+            from_contact_email='sale@gmail.com',
+            count=15)
+        response = self.client.get(f'/api/v1.0/mails/?folder={folder_sales.id}',
+                                   format='json')
+        assert response.status_code == HTTP_200_OK
+        assert response.data['count'] == generated_mails_count_sales
 
     def tearDown(self):
         self.maildir.delete()
@@ -198,7 +251,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         gathered_mails_response_data = json.loads(response.content)
 
         # Move mails to folder
-        message_ids = [m['id'] for m in gathered_mails_response_data]
+        message_ids = [m['id'] for m in gathered_mails_response_data['results']]
         request_data = {
             'messages': message_ids
         }
@@ -213,7 +266,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         assert response.data['moved_messages'] == message_ids
 
         # Try to move mails to folder once again, should not be moved
-        message_ids = [m['id'] for m in gathered_mails_response_data]
+        message_ids = [m['id'] for m in gathered_mails_response_data['results']]
         request_data = {
             'messages': message_ids
         }
@@ -237,7 +290,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         gathered_mails_response_data = json.loads(response.content)
 
         # Move mails to folder
-        message_ids = [m['id'] for m in gathered_mails_response_data]
+        message_ids = [m['id'] for m in gathered_mails_response_data['results']]
         request_data = {
             'messages': message_ids
         }
@@ -256,7 +309,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
         assert response.data['moved_messages'] == message_ids
 
         # Move from one folder to another
-        message_ids = [m['id'] for m in gathered_mails_response_data]
+        message_ids = [m['id'] for m in gathered_mails_response_data['results']]
         request_data = {
             'messages': message_ids
         }

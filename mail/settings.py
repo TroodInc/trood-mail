@@ -13,6 +13,7 @@ import os
 
 from configurations import Configuration
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,6 +26,7 @@ class BaseConfiguration(Configuration):
     SECRET_KEY = '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr'
 
     # SECURITY WARNING: don't run with debug turned on in production!
+    DEBUG = True
 
     ALLOWED_HOSTS = ['*']
 
@@ -39,6 +41,7 @@ class BaseConfiguration(Configuration):
         'django.contrib.messages',
         'django.contrib.staticfiles',
         'rest_framework',
+        'django_filters',
         'django_mailbox',
 
         'mail.api',
@@ -107,7 +110,6 @@ class BaseConfiguration(Configuration):
         },
     ]
 
-
     # Internationalization
     # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
@@ -122,7 +124,8 @@ class BaseConfiguration(Configuration):
     USE_TZ = True
 
     REST_FRAMEWORK = {
-        'PAGINATE_BY': 10,
+        'DEFAULT_PAGINATION_CLASS': 'mail.api.pagination.PageNumberPagination',
+        'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
     }
 
 

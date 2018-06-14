@@ -75,6 +75,8 @@ class MailboxViewSet(viewsets.ModelViewSet):
 class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
+    filter_fields = ('folder',)
+
     # permission_classes = (IsAuthenticated, )
 
     def perform_create(self, serializer):
