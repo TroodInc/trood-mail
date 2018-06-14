@@ -17,6 +17,9 @@ class Folder(models.Model):
     mailbox = models.ForeignKey(Mailbox, null=False, related_name="folders")
     name = models.CharField(max_length=128, null=False)
 
+    class Meta:
+        ordering = ['name']
+
     def __str__(self):
         return f'{self.name}'
 
