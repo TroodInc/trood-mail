@@ -1,3 +1,4 @@
+import smtplib
 from datetime import datetime
 
 from django_mailbox.models import Mailbox
@@ -126,6 +127,21 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomMailbox
         fields = ("id", "smtp_host", "smtp_port")
+
+    def validate(self, data):
+        validated_data = super().validate(data)
+        server = smtplib.SMTP(validated_data['smtp_host'],
+                              validated_data['smtp_port'])
+        server.ehlo()
+        server.starttls()
+        try:
+            server.login(validated_data['email'], validated_data['password'])
+        except smtplib.SMTPAuthenticationError as e:
+            error_message = f'Неверный email или пароль'
+            raise ValidationError(error_message)
+        finally:
+            server.quit()
+        return data
 
     def to_representation(self, instance):
         data = super(TroodMailboxSerializer, self).to_representation(instance)

@@ -99,8 +99,8 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
             "password": "qazxqazx",
             "imap_host": "imap.gmail.com",
             "imap_port": 993,
-            "smtp_host": "smtp.google.com",
-            "smtp_port": 578,
+            "smtp_host": "smtp.gmail.com",
+            "smtp_port": 587,
             "secure": "ssl",
             "active": True
         }
