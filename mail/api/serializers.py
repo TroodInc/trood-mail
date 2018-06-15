@@ -137,7 +137,7 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
         try:
             server.login(validated_data['email'], validated_data['password'])
         except smtplib.SMTPAuthenticationError as e:
-            error_message = f'Неверный email или пароль'
+            error_message = f'SMTP server login error: invalid email or password '
             raise ValidationError(error_message)
         finally:
             server.quit()
