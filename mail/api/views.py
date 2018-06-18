@@ -88,7 +88,7 @@ class MailViewSet(viewsets.ModelViewSet):
     # permission_classes = (IsAuthenticated, )
 
     def perform_create(self, serializer):
-        mail = serializer.save()
+        mail = serializer.save(outgoing=True)
 
         if not mail.draft:
             mail.send()
