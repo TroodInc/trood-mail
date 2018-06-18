@@ -8,12 +8,13 @@ import uuid
 from string import Template
 
 from django_mailbox.models import Mailbox
+from hamcrest import *
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, \
     HTTP_404_NOT_FOUND
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 
-from mail.api.models import Contact, Folder, CustomMailbox
+from mail.api.models import Contact, Folder, CustomMailbox, Mail
 
 
 class Maildir:
@@ -33,6 +34,7 @@ class Maildir:
         # To let maildir protocol works,
         # there are should be new,cur dirs in local mail dir path
         inbox = Mailbox.objects.create(uri='maildir://' + self.box_path)
+        inbox.from_email = "test@mail.com"
         self.mailbox = CustomMailbox.objects.create(inbox=inbox)
 
     def delete(self):
@@ -198,26 +200,43 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert response.status_code == HTTP_404_NOT_FOUND
         assert response.data['detail'] == 'Invalid page.'
 
-    def test_filter_by_folder_ok(self):
-        folder_leads = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
-                                       name='Leads')
-        contact_leads = Contact.objects.create(email='lead@gmail.com',
-                                               folder=folder_leads)
-        generated_mails_count_leads = self.generate_mails(from_contact_name='lead',
-                                                         from_contact_email='lead@gmail.com',
-                                                         count=10)
-        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
-                                       name='Sales')
-        contact_sales = Contact.objects.create(email='sale@gmail.com',
-                                               folder=folder_sales)
-        generated_mails_count_sales = self.generate_mails(
-            from_contact_name='sale',
-            from_contact_email='sale@gmail.com',
-            count=15)
-        response = self.client.get(f'/api/v1.0/mails/?folder={folder_sales.id}',
-                                   format='json')
-        assert response.status_code == HTTP_200_OK
-        assert response.data['count'] == generated_mails_count_sales
+    def test_can_filter_by_folder(self):
+
+        folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox, name='Sales')
+
+        mail_in_folder = Mail.objects.create(
+            mailbox=self.maildir.mailbox.inbox,
+            subject="sales mail", folder=folder_sales
+        )
+
+        inbox_mail = Mail.objects.create(
+            mailbox=self.maildir.mailbox.inbox,
+            subject="test mail"
+        )
+
+        outgoing_mail = Mail.objects.create(
+            mailbox=self.maildir.mailbox.inbox,
+            subject="outgoing", outgoing=True
+        )
+
+        response = self.client.get(f'/api/v1.0/mails/?folder={folder_sales.id}', )
+
+        assert_that(response.status_code, equal_to(HTTP_200_OK))
+        assert_that(response.data['results'], has_length(1))
+        assert_that(response.data['results'][0]['id'], equal_to(mail_in_folder.id))
+
+        response = self.client.get(f'/api/v1.0/mails/?folder=inbox', )
+
+        assert_that(response.status_code, equal_to(HTTP_200_OK))
+        assert_that(response.data['results'], has_length(1))
+        assert_that(response.data['results'][0]['id'], equal_to(inbox_mail.id))
+
+        response = self.client.get(f'/api/v1.0/mails/?folder=outbox', )
+
+        assert_that(response.status_code, equal_to(HTTP_200_OK))
+        assert_that(response.data['results'], has_length(1))
+        assert_that(response.data['results'][0]['id'], equal_to(outgoing_mail.id))
+
 
     def tearDown(self):
         self.maildir.delete()
