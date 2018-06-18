@@ -7,7 +7,7 @@ services:
       dockerfile: deployment/Dockerfile
     container_name: mail
     environment:
-      DJANGO_CONFIGURATION: Production
+      DJANGO_CONFIGURATION: Development
     networks:
       - test-network
 
