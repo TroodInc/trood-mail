@@ -237,6 +237,29 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         assert_that(response.data['results'], has_length(1))
         assert_that(response.data['results'][0]['id'], equal_to(outgoing_mail.id))
 
+    def test_can_search(self):
+        mail_1 = Mail.objects.create(
+            mailbox=self.maildir.mailbox.inbox,
+            subject="sales mail",
+        )
+
+        mail_2 = Mail.objects.create(
+            mailbox=self.maildir.mailbox.inbox,
+            subject="test mail",
+            from_header="boss@mail.com"
+        )
+
+        response = self.client.get('/api/v1.0/mails/?search=sales', )
+
+        assert_that(response.status_code, equal_to(HTTP_200_OK))
+        assert_that(response.data['results'], has_length(1))
+        assert_that(response.data['results'][0]['id'], equal_to(mail_1.id))
+
+        response = self.client.get('/api/v1.0/mails/?search=boss', )
+
+        assert_that(response.status_code, equal_to(HTTP_200_OK))
+        assert_that(response.data['results'], has_length(1))
+        assert_that(response.data['results'][0]['id'], equal_to(mail_2.id))
 
     def tearDown(self):
         self.maildir.delete()

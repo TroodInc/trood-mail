@@ -1,5 +1,6 @@
 from django.db import transaction
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, filters
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.response import Response
@@ -80,6 +81,8 @@ class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
     pagination_class = PageNumberPagination
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
     filter_class = MailsFilter
 
     # permission_classes = (IsAuthenticated, )
