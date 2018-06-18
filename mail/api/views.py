@@ -4,6 +4,8 @@ from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
+
+from mail.api.filters import MailsFilter
 from mail.api.models import Folder, Contact, \
     ModelApiError, Mail, CustomMailbox
 from mail.api.pagination import PageNumberPagination
@@ -78,7 +80,7 @@ class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
     pagination_class = PageNumberPagination
-    filter_fields = ('folder',)
+    filter_class = MailsFilter
 
     # permission_classes = (IsAuthenticated, )
 
