@@ -62,6 +62,7 @@ class MailSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super(MailSerializer, self).to_representation(instance)
         data['mailbox'] = instance.mailbox.mailer.id
+        data['body'] = instance.html
 
         return data
 
