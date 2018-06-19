@@ -14,10 +14,6 @@ services:
   mail_postgres:
     image: postgres:9.5
     container_name: postgres.mail
-    volumes:
-      - ./postgres/${CONTAINER_NAME}/data:/var/lib/postgresql/data
-      - ./postgres/${CONTAINER_NAME}/conf:/etc/postgresql
-      - ./postgres/${CONTAINER_NAME}/logs:/var/log/postgresql
     environment:
       LC_ALL: C.UTF-8
       POSTGRES_DB: mail
