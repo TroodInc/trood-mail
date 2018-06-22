@@ -49,14 +49,16 @@ class BulkAssignSerializer(serializers.Serializer):
 class MailSerializer(serializers.ModelSerializer):
     to = EmailsListHeaderField(source="to_header")
     bcc = EmailsListHeaderField(required=False)
+    created_at = serializers.DateTimeField(source="processed")
 
     class Meta:
         model = Mail
         fields = (
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
-            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments", )
+            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments")
         read_only_fields = (
             "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies", "attachments",
+            "created_at"
         )
 
     def to_representation(self, instance):
