@@ -3,6 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError, ParseError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
 
@@ -19,7 +20,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
     queryset = CustomMailbox.objects.all()
     serializer_class = TroodMailboxSerializer
 
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=["POST"])
     def fetch(self, request, pk=None):
@@ -76,6 +77,9 @@ class MailboxViewSet(viewsets.ModelViewSet):
         finally:
             return mail, contact
 
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user.id)
+
 
 class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
@@ -85,7 +89,7 @@ class MailViewSet(viewsets.ModelViewSet):
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
     filter_class = MailsFilter
 
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
 
     def perform_create(self, serializer):
         mail = serializer.save(outgoing=True)
@@ -97,7 +101,7 @@ class MailViewSet(viewsets.ModelViewSet):
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
@@ -158,11 +162,14 @@ class FolderViewSet(viewsets.ModelViewSet):
         return Response(ContactSerializer(contacts, many=True).data,
                         status=HTTP_200_OK)
 
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user.id)
+
 
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
 
     def update(self, request, *args, **kwargs):
         contact = self.get_object()
