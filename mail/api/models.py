@@ -3,6 +3,7 @@ import smtplib
 
 from django.db import models
 from django_mailbox.models import Mailbox, Message
+from django.utils.translation import ugettext_lazy as _
 from django_mailbox import utils
 
 
@@ -14,6 +15,7 @@ class ModelApiError(Exception):
 
 
 class Folder(models.Model):
+    owner = models.IntegerField(_('Owner'), null=True, default=None)
     mailbox = models.ForeignKey(Mailbox, null=False, related_name="folders")
     name = models.CharField(max_length=128, null=False)
 
@@ -71,6 +73,7 @@ class Inbox(Mailbox):
 
 
 class CustomMailbox(models.Model):
+    owner = models.IntegerField(_('Owner'), null=True, default=None)
     inbox = models.OneToOneField(Inbox, related_name="mailer")
     smtp_host = models.CharField(max_length=128)
     smtp_port = models.IntegerField(default=587)

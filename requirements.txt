@@ -31,3 +31,5 @@ text-unidecode==1.2
 uritemplate==3.0.0
 urllib3==1.22
 raven==6.9.0
+
+git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/trood-auth-client.git#egg=trood-auth-client

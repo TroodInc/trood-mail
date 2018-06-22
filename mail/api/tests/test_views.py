@@ -15,7 +15,11 @@ from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 
 from mail.api.models import Contact, Folder, CustomMailbox, Mail
+from trood_auth_client.authentication import TroodUser
 
+trood_user = TroodUser({
+    "id": 1,
+})
 
 class Maildir:
     """
@@ -35,7 +39,7 @@ class Maildir:
         # there are should be new,cur dirs in local mail dir path
         inbox = Mailbox.objects.create(uri='maildir://' + self.box_path)
         inbox.from_email = "test@mail.com"
-        self.mailbox = CustomMailbox.objects.create(inbox=inbox)
+        self.mailbox = CustomMailbox.objects.create(owner=trood_user.id, inbox=inbox)
 
     def delete(self):
         # Should be invoked explicitly,
@@ -93,6 +97,7 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
     def setUp(self):
         self.maildir = Maildir()
         self.client = APIClient()
+        self.client.force_authenticate(user=trood_user)
 
     def test_create_mailbox(self):
         request_data = {
@@ -143,6 +148,7 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
     def setUp(self):
         self.maildir = Maildir()
         self.client = APIClient()
+        self.client.force_authenticate(user=trood_user)
 
     def test_mails_gathered(self):
         num_of_mails = 7
@@ -269,6 +275,7 @@ class FolderViewSetTestCase(MailTestMixin, APITestCase):
     def setUp(self):
         self.maildir = Maildir()
         self.client = APIClient()
+        self.client.force_authenticate(user=trood_user)
 
     def test_create_folder_ok(self):
         request_data = {
@@ -376,6 +383,7 @@ class AssignContactToFolderViewSetTestCase(MailTestMixin, APITestCase):
     def setUp(self):
         self.maildir = Maildir()
         self.client = APIClient()
+        self.client.force_authenticate(user=trood_user)
 
     def test_assign_contact_to_folder(self):
         folder_sales = Folder.objects.create(mailbox=self.maildir.mailbox.inbox,
