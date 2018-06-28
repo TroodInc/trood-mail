@@ -1,5 +1,8 @@
 import logging
 import smtplib
+import email
+import gzip
+import six
 
 from django.db import models
 from django_mailbox.models import Mailbox, Message
@@ -87,12 +90,52 @@ class Mail(Message):
     class Meta:
         ordering = ['-processed']
 
+    def get_email_object(self):
+        """Returns an `email.message.Message` instance representing the
+        contents of this message and all attachments.
+
+        See [email.Message.Message]_ for more information as to what methods
+        and properties are available on `email.message.Message` instances.
+
+        .. note::
+
+           Depending upon the storage methods in use (specifically --
+           whether ``DJANGO_MAILBOX_STORE_ORIGINAL_MESSAGE`` is set
+           to ``True``, this may either create a "rehydrated" message
+           using stored attachments, or read the message contents stored
+           on-disk.
+
+        .. [email.Message.Message]: Python's `email.message.Message` docs
+           (https://docs.python.org/2/library/email.message.html)
+
+        """
+        if self.eml:
+            if self.eml.name.endswith('.gz'):
+                body = gzip.GzipFile(fileobj=self.eml).read()
+            else:
+                self.eml.open()
+                body = self.eml.file.read()
+                self.eml.close()
+        else:
+            body = self.get_body()
+        if six.PY3:
+            flat = email.message_from_bytes(body)
+        else:
+            flat = email.message_from_string(body)
+        try:
+            payload = body.decode('ascii')
+        except UnicodeDecodeError:
+            payload = body.decode('utf-8')
+        flat._payload = payload
+        return self._rehydrate(flat)
+
     def send(self):
         msg = self.get_email_object()
         msg["Subject"] = self.subject
         msg["From"] = self.from_header
         msg["To"] = self.to_header
         msg["Bcc"] = self.bcc
+        msg.set_charset('utf-8')
 
         server = smtplib.SMTP(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
         server.ehlo()
