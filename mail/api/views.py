@@ -101,7 +101,7 @@ class MailViewSet(viewsets.ModelViewSet):
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
-    permission_classes = (IsAuthenticated, )
+    # permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
