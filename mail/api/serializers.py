@@ -55,7 +55,7 @@ class MailSerializer(serializers.ModelSerializer):
         model = Mail
         fields = (
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
-            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments",)
+            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments", "created_at")
         read_only_fields = (
             "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies", "attachments",
             "created_at",
