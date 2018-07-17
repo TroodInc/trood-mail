@@ -49,7 +49,7 @@ class BulkAssignSerializer(serializers.Serializer):
 class MailSerializer(serializers.ModelSerializer):
     to = EmailsListHeaderField(source="to_header")
     bcc = EmailsListHeaderField(required=False)
-    created_at = serializers.DateTimeField(source="processed")
+    created_at = serializers.DateTimeField(source="processed", read_only=True)
 
     class Meta:
         model = Mail
@@ -71,8 +71,7 @@ class MailSerializer(serializers.ModelSerializer):
         return data
 
     def to_internal_value(self, data):
-        read = data.get("read", None)
-        if read:
+        if 'read' in data:
             data['read'] = datetime.now()
 
         mailbox = data.get('mailbox', None)
