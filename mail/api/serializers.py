@@ -68,9 +68,11 @@ class MailSerializer(serializers.ModelSerializer):
         model = Mail
         fields = (
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
-            "read", "outgoing", "in_reply_to", "mail_replies", "folder", "attachments", "created_at", "message_id")
+            "read", "outgoing", "in_reply_to", "mail_replies", "folder", "attachments", "created_at",
+            "message_id", "chain"
+        )
         read_only_fields = (
-            "id", "encoded",  "from_address", "outgoing", "mail_replies",  "created_at", "message_id"
+            "id", "encoded",  "from_address", "outgoing", "mail_replies",  "created_at", "message_id", "chain"
         )
 
     def to_representation(self, instance):
