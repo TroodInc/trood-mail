@@ -68,9 +68,9 @@ class MailSerializer(serializers.ModelSerializer):
         model = Mail
         fields = (
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
-            "read", "outgoing", "in_reply_to", "replies", "folder", "attachments", "created_at")
+            "read", "outgoing", "in_reply_to", "mail_replies", "folder", "attachments", "created_at", "message_id")
         read_only_fields = (
-            "id", "encoded",  "from_address", "outgoing", "in_reply_to", "replies",  "created_at",
+            "id", "encoded",  "from_address", "outgoing", "mail_replies",  "created_at", "message_id"
         )
 
     def to_representation(self, instance):
@@ -107,6 +107,11 @@ class MailSerializer(serializers.ModelSerializer):
             obj.document.save(attachment, default_storage.open(attachment), save=True)
 
         return instance
+
+    def update(self, instance, validated_data):
+        validated_data.pop("attachments", [])
+
+        return super(MailSerializer, self).update(instance, validated_data)
 
 
 class InboxSerializer(serializers.ModelSerializer):

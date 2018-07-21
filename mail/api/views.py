@@ -1,4 +1,6 @@
+import itertools
 from django.db import transaction
+from django.db.models import Count, Q, Max, Min, OuterRef, Subquery
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters
 from rest_framework.decorators import detail_route, list_route
@@ -6,6 +8,7 @@ from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from mail.api.filters import MailsFilter
 from mail.api.models import Folder, Contact, \
@@ -98,10 +101,43 @@ class MailViewSet(viewsets.ModelViewSet):
             mail.send()
 
 
+class ChainViewSet(ReadOnlyModelViewSet):
+    permission_classes = (IsAuthenticated,)
+
+    def retrieve(self, request, pk):
+        queryset = Mail.objects.filter(chain=pk)
+        result = MailSerializer(instance=queryset, many=True).data
+
+        return Response(result)
+
+    def list(self, request):
+        q_total = Count("pk")
+        q_unread = Count("pk", filter=Q(read=None))
+        q_subj = Mail.objects.filter(chain=OuterRef('chain')).order_by("processed")[:1]
+
+        queryset = Mail.objects.values("chain").annotate(
+            total=q_total, unread=q_unread,
+            last=Max("processed"), first=Min("processed"),
+            subject=Subquery(q_subj.values("subject")),
+        ).order_by("chain").distinct()
+
+        result = []
+        for chain in queryset:
+            mails = Mail.objects.filter(chain=chain['chain'])
+            addresses = [mail.address for mail in mails]
+            contacts = set(itertools.chain(*addresses))
+            result.append({
+                **chain,
+                'contacts': contacts
+            })
+
+        return Response(result)
+
+
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
 
     @detail_route(methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
