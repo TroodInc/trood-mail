@@ -106,32 +106,36 @@ class ChainViewSet(ReadOnlyModelViewSet):
 
     def retrieve(self, request, pk):
         queryset = Mail.objects.filter(chain=pk)
-        result = MailSerializer(instance=queryset, many=True).data
+        page = self.paginate_queryset(queryset)
+        result = MailSerializer(instance=page, many=True).data
 
-        return Response(result)
+        return self.get_paginated_response(result)
 
     def list(self, request):
         q_total = Count("pk")
         q_unread = Count("pk", filter=Q(read=None))
         q_subj = Mail.objects.filter(chain=OuterRef('chain')).order_by("processed")[:1]
 
-        queryset = Mail.objects.values("chain").annotate(
+        queryset = Mail.objects.values("chain").order_by("chain").distinct().annotate(
             total=q_total, unread=q_unread,
             last=Max("processed"), first=Min("processed"),
-            subject=Subquery(q_subj.values("subject")),
-        ).order_by("chain").distinct()
+            chain_subject=Subquery(q_subj.values("subject")),
+        )
+
+        page = self.paginate_queryset(queryset)
 
         result = []
-        for chain in queryset:
-            mails = Mail.objects.filter(chain=chain['chain'])
-            addresses = [mail.address for mail in mails]
-            contacts = set(itertools.chain(*addresses))
-            result.append({
-                **chain,
-                'contacts': contacts
-            })
+        if page is not None:
+            for chain in page:
+                mails = Mail.objects.filter(chain=chain['chain'])
+                addresses = [mail.address for mail in mails]
+                contacts = set(itertools.chain(*addresses))
+                result.append({
+                    **chain,
+                    'contacts': contacts
+                })
 
-        return Response(result)
+        return self.get_paginated_response(result)
 
 
 class FolderViewSet(viewsets.ModelViewSet):
