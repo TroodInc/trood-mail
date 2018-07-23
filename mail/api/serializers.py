@@ -63,16 +63,18 @@ class MailSerializer(serializers.ModelSerializer):
     bcc = EmailsListHeaderField(required=False)
     created_at = serializers.DateTimeField(source="processed", read_only=True)
     attachments = AttachmentsSerializer(many=True, required=False)
+    read_date = serializers.DateTimeField(source="read", read_only=True)
 
     class Meta:
         model = Mail
         fields = (
-            "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address",
-            "read", "outgoing", "in_reply_to", "mail_replies", "folder", "attachments", "created_at",
+            "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address", "is_read",
+            "read_date", "outgoing", "in_reply_to", "mail_replies", "folder", "attachments", "created_at",
             "message_id", "chain"
         )
         read_only_fields = (
-            "id", "encoded",  "from_address", "outgoing", "mail_replies",  "created_at", "message_id", "chain"
+            "id", "encoded",  "from_address", "outgoing", "mail_replies",
+            "created_at", "message_id", "chain", "read_date"
         )
 
     def to_representation(self, instance):
@@ -85,8 +87,6 @@ class MailSerializer(serializers.ModelSerializer):
         return data
 
     def to_internal_value(self, data):
-        if 'read' in data:
-            data['read'] = datetime.now()
 
         mailbox = data.get('mailbox', None)
         if mailbox:
@@ -97,6 +97,12 @@ class MailSerializer(serializers.ModelSerializer):
         data = super(MailSerializer, self).to_internal_value(data)
 
         data['attachments'] = attachments
+
+        if 'is_read' in data:
+            if data['is_read']:
+                data['read'] = datetime.now()
+            else:
+                data['read'] = None
 
         return data
 

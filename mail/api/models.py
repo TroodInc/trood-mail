@@ -214,6 +214,7 @@ class Mail(models.Model):
 
     processed = models.DateTimeField(_('Processed'), auto_now_add=True)
     read = models.DateTimeField(_(u'Read'), default=None, blank=True, null=True,)
+    is_read = models.BooleanField(default=False)
 
     eml = models.FileField(
         _(u'Raw message contents'), null=True, upload_to="messages", help_text=_(u'Original full content of message')
