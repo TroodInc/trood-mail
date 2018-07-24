@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from mail.api.models import Folder, Contact, Mail, \
-    CustomMailbox
+    CustomMailbox, Attachment
 
 
 class EmailsListHeaderField(serializers.ListField):
@@ -51,7 +51,7 @@ class AttachmentsSerializer(serializers.ModelSerializer):
     # @todo: Fix to deal with default filestorage not only TroodFile
 
     class Meta:
-        model = MessageAttachment
+        model = Attachment
         fields = '__all__'
 
     def to_representation(self, instance):
@@ -111,7 +111,7 @@ class MailSerializer(serializers.ModelSerializer):
         instance = super(MailSerializer, self).create(validated_data)
 
         for attachment in attachments:
-            obj = MessageAttachment.objects.create(message=instance)
+            obj = Attachment.objects.create(message=instance)
             obj.document.save(attachment, default_storage.open(attachment), save=True)
 
         return instance
