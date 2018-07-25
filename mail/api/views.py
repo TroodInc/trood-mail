@@ -103,9 +103,12 @@ class MailViewSet(viewsets.ModelViewSet):
 class ChainViewSet(ReadOnlyModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    search_fields = ('subject', 'bcc', 'from_header', 'to_header',)
 
     def retrieve(self, request, pk):
         queryset = Mail.objects.filter(chain=pk)
+        queryset = self.filter_queryset(queryset)
         page = self.paginate_queryset(queryset)
         result = MailSerializer(instance=page, many=True).data
 
@@ -121,6 +124,8 @@ class ChainViewSet(ReadOnlyModelViewSet):
             last=Max("processed"), first=Min("processed"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
+
+        queryset = self.filter_queryset(queryset)
 
         page = self.paginate_queryset(queryset)
 
