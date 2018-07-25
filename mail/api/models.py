@@ -187,13 +187,13 @@ class CustomMailbox(models.Model):
 
 # @todo: OPTIMIZZZZZEEEE !!!!!!!
 class Mail(models.Model):
-    folder = models.ForeignKey(Folder, null=True, related_name='messages', on_delete=models.CASCADE)
+    folder = models.ForeignKey(Folder, null=True, related_name='messages', on_delete=models.SET_NULL)
     bcc = models.TextField(null=True)
     draft = models.BooleanField(default=False)
     chain = models.UUIDField(default=uuid.uuid4)
 
     mailbox = models.ForeignKey(
-        'django_mailbox.Mailbox', verbose_name=_(u'Mailbox'), on_delete=models.CASCADE
+        'django_mailbox.Mailbox', verbose_name=_(u'Mailbox'), on_delete=models.SET_NULL, null=True
     )
 
     subject = models.CharField(_(u'Subject'), max_length=255, blank=True, null=True)
@@ -201,7 +201,7 @@ class Mail(models.Model):
 
     in_reply_to = models.ForeignKey(
         'Mail', related_name='mail_replies', blank=True,
-        null=True, verbose_name=_(u'In reply to'), on_delete=models.CASCADE
+        null=True, verbose_name=_(u'In reply to'), on_delete=models.SET_NULL
     )
 
     from_header = models.CharField(_('From header'), max_length=255, blank=True, null=True)
