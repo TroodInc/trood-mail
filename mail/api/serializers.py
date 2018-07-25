@@ -82,7 +82,10 @@ class MailSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super(MailSerializer, self).to_representation(instance)
-        data['mailbox'] = instance.mailbox.mailer.id
+        if hasattr(instance.mailbox, 'mailer'):
+            data['mailbox'] = instance.mailbox.mailer.id
+        else:
+            data['mailbox'] = None
 
         body = instance.html or instance.text
         data['body'] = body
