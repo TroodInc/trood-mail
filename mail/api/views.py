@@ -96,6 +96,9 @@ class MailViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         mail = serializer.save(outgoing=True)
 
+        for address in mail.address:
+            Contact.objects.get_or_create(email=address)
+
         if not mail.draft:
             mail.send()
 
@@ -214,6 +217,8 @@ class FolderViewSet(viewsets.ModelViewSet):
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    search_fields = ('email', 'name')
     permission_classes = (IsAuthenticated, )
 
     def update(self, request, *args, **kwargs):
