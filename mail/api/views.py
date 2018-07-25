@@ -44,7 +44,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
 
         mails_total = contast_total = 0
-        for mailbox in queryset.filter(actile=True):
+        for mailbox in queryset.filter(inbox__active=True):
             mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
             mails_total += len(mails)
             contast_total += new_contacts

@@ -55,7 +55,10 @@ class AttachmentsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def to_representation(self, instance):
-        return instance.document.file.meta
+        if instance.document:
+            return instance.document.file.meta
+        else:
+            return None
 
 
 class MailSerializer(serializers.ModelSerializer):
