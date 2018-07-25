@@ -106,8 +106,9 @@ class MailViewSet(viewsets.ModelViewSet):
 class ChainViewSet(ReadOnlyModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('subject', 'bcc', 'from_header', 'to_header',)
+    ordering_fields = ('last', 'first', 'processed')
 
     def retrieve(self, request, pk):
         queryset = Mail.objects.filter(chain=pk)
