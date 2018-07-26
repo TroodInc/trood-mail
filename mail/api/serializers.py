@@ -22,7 +22,7 @@ class EmailsListHeaderField(serializers.ListField):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ("id", "name", "mailbox", )
+        fields = ("id", "name", "owner",)
 
 
 class ContactSerializer(serializers.ModelSerializer):
