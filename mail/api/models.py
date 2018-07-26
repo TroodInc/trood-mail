@@ -33,7 +33,6 @@ class ModelApiError(Exception):
 
 class Folder(models.Model):
     owner = models.IntegerField(_('Owner'), null=True, default=None)
-    mailbox = models.ForeignKey(Mailbox, null=False, related_name="folders", on_delete=models.CASCADE)
     name = models.CharField(max_length=128, null=False)
 
     class Meta:
