@@ -163,7 +163,7 @@ class InboxSerializer(serializers.ModelSerializer):
         if len(parts) == 2:
             data['secure'] = parts[1]
         else:
-            data['secure'] =None
+            data['secure'] = None
 
         return data
 
@@ -171,9 +171,9 @@ class InboxSerializer(serializers.ModelSerializer):
         secure = data.pop("secure", "")
         data = super(InboxSerializer, self).to_internal_value(data)
 
-        password = data.pop("password")
-        host = data.pop("location")
-        port = data.pop("port")
+        password = data.pop("password", self.instance.password)
+        host = data.pop("location", self.instance.location)
+        port = data.pop("port", self.instance.port)
 
         if secure != "":
             secure = "+{}".format(secure)
