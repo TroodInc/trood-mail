@@ -8,7 +8,7 @@ class MailsFilter(FilterSet):
 
     class Meta:
         model = Mail
-        fields = ('outgoing', )
+        fields = ('outgoing', 'chain')
 
     def filter_folder(self, qs, name, value):
         if value == 'inbox':
