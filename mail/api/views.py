@@ -42,14 +42,23 @@ class MailboxViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
 
         mails_total = contast_total = 0
+        failed = []
         for mailbox in queryset.filter(inbox__active=True):
-            mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
-            mails_total += len(mails)
-            contast_total += new_contacts
+
+            try:
+                mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
+                mails_total += len(mails)
+                contast_total += new_contacts
+            except Exception as e:
+                failed.append({
+                    "mailbox": mailbox.id,
+                    "error": str(e)
+                })
 
         data = {
             "mails received": mails_total,
-            "contacts added": contast_total
+            "contacts added": contast_total,
+            "fails": failed
         }
 
         return Response(data, status=HTTP_200_OK)
