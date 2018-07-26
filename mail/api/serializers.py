@@ -154,6 +154,19 @@ class InboxSerializer(serializers.ModelSerializer):
         model = Mailbox
         fields = ("name", "active", "email", "password", "imap_host", "imap_port", "last_polling")
 
+    def to_representation(self, instance):
+        data = super(InboxSerializer, self).to_representation(instance)
+
+        schema = instance._protocol_info.scheme.lower()
+
+        parts = schema.split('+')
+        if len(parts) == 2:
+            data['secure'] = parts[1]
+        else:
+            data['secure'] =None
+
+        return data
+
     def to_internal_value(self, data):
         secure = data.pop("secure", "")
         data = super(InboxSerializer, self).to_internal_value(data)

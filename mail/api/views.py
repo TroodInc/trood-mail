@@ -1,6 +1,7 @@
 import itertools
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters
 from rest_framework.decorators import detail_route, list_route
@@ -110,15 +111,7 @@ class ChainViewSet(ReadOnlyModelViewSet):
     search_fields = ('subject', 'bcc', 'from_header', 'to_header',)
     ordering_fields = ('last', 'first', 'processed')
 
-    def retrieve(self, request, pk):
-        queryset = Mail.objects.filter(chain=pk)
-        queryset = self.filter_queryset(queryset)
-        page = self.paginate_queryset(queryset)
-        result = MailSerializer(instance=page, many=True).data
-
-        return self.get_paginated_response(result)
-
-    def list(self, request):
+    def get_queryset(self):
         q_total = Count("pk")
         q_unread = Count("pk", filter=Q(read=None))
         q_subj = Mail.objects.filter(chain=OuterRef('chain')).order_by("processed")[:1]
@@ -129,6 +122,21 @@ class ChainViewSet(ReadOnlyModelViewSet):
             chain_subject=Subquery(q_subj.values("subject")),
         )
 
+        return queryset
+
+    def retrieve(self, request, pk):
+        queryset = self.filter_queryset(self.get_queryset())
+        chain = get_object_or_404(queryset, chain=pk)
+
+        result = {
+            **chain,
+            'contacts': self._get_chain_contacts(pk)
+        }
+
+        return Response(result)
+
+    def list(self, request):
+        queryset = self.get_queryset()
         queryset = self.filter_queryset(queryset)
 
         page = self.paginate_queryset(queryset)
@@ -136,15 +144,19 @@ class ChainViewSet(ReadOnlyModelViewSet):
         result = []
         if page is not None:
             for chain in page:
-                mails = Mail.objects.filter(chain=chain['chain'])
-                addresses = [mail.address for mail in mails]
-                contacts = set(itertools.chain(*addresses))
                 result.append({
                     **chain,
-                    'contacts': contacts
+                    'contacts': self._get_chain_contacts(chain['chain'])
                 })
 
         return self.get_paginated_response(result)
+
+    def _get_chain_contacts(self, chain):
+        mails = Mail.objects.filter(chain=chain)
+        addresses = [mail.address for mail in mails]
+        contacts = set(itertools.chain(*addresses))
+
+        return contacts
 
 
 class FolderViewSet(viewsets.ModelViewSet):
