@@ -182,6 +182,7 @@ class CustomMailbox(models.Model):
     inbox = models.OneToOneField(Inbox, related_name="mailer", on_delete=models.CASCADE)
     smtp_host = models.CharField(max_length=128)
     smtp_port = models.IntegerField(default=587)
+    shared = models.BooleanField(default=False)
 
 
 # @todo: OPTIMIZZZZZEEEE !!!!!!!
