@@ -188,7 +188,7 @@ class InboxSerializer(serializers.ModelSerializer):
 class TroodMailboxSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomMailbox
-        fields = ("id", "smtp_host", "smtp_port", "owner", )
+        fields = ("id", "smtp_host", "smtp_port", "owner", "shared", )
         read_only_fields = ("owner", )
 
     def validate(self, data):
