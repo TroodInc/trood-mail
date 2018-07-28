@@ -3,7 +3,7 @@ from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.permissions import IsAuthenticated
@@ -16,7 +16,7 @@ from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
-    BulkAssignSerializer, TroodMailboxSerializer
+    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
@@ -89,8 +89,30 @@ class MailboxViewSet(viewsets.ModelViewSet):
         finally:
             return mail, contact
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user.id)
+    def create(self, request, *args, **kwargs):
+        inbox = InboxSerializer(data=request.data)
+        inbox.is_valid(raise_exception=True)
+        inbox.save()
+
+        print(request.data)
+        mailbox = TroodMailboxSerializer(data=request.data)
+        mailbox.is_valid(raise_exception=True)
+        mailbox.save(owner=self.request.user.id, inbox=inbox.instance)
+
+        return Response(mailbox.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        inbox = InboxSerializer(instance.inbox, data=request.data, partial=True)
+        inbox.is_valid(raise_exception=True)
+        inbox.save()
+
+        mailbox = TroodMailboxSerializer(instance, data=request.data, partial=True)
+        mailbox.is_valid(raise_exception=True)
+        mailbox.save()
+
+        return Response(mailbox.data)
 
 
 class MailViewSet(viewsets.ModelViewSet):

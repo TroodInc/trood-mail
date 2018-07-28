@@ -1,5 +1,6 @@
 import smtplib
 from datetime import datetime
+from urllib.parse import urlparse
 
 from django.core.files.storage import default_storage
 from django_mailbox.models import Mailbox, MessageAttachment
@@ -168,64 +169,79 @@ class InboxSerializer(serializers.ModelSerializer):
         return data
 
     def to_internal_value(self, data):
-        secure = data.pop("secure", "")
+        secure = data.pop("secure", None)
+
+        if secure:
+            secure = "+{}".format(secure)
+        elif self.instance:
+            parts = urlparse(self.instance.uri).scheme.lower().split('+')
+            if len(parts) == 2:
+                secure = "+{}".format(parts[1])
+        else:
+            secure = ""
+
         data = super(InboxSerializer, self).to_internal_value(data)
 
-        password = data.pop("password", self.instance.password)
-        host = data.pop("location", self.instance.location)
-        port = data.pop("port", self.instance.port)
+        password = data.pop("password", None)
+        if not password and self.instance:
+            password = self.instance.password
 
-        if secure != "":
-            secure = "+{}".format(secure)
+        host = data.pop("location", None)
+        if not host and self.instance:
+            host = self.instance.location
 
-        username = data["from_email"].split("@")[0]
+        port = data.pop("port", None)
+        if not port and self.instance:
+            port = self.instance.port
 
-        data['uri'] = "imap{}://{}:{}@{}:{}".format(secure, username, password, host, port)
+        email = data.get("from_email", None)
+        if not email and self.instance:
+            email = self.instance.from_email
+
+        data['uri'] = "imap{}://{}:{}@{}:{}".format(secure, email.split("@")[0], password, host, port)
 
         return data
 
 
 class TroodMailboxSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = CustomMailbox
-        fields = ("id", "smtp_host", "smtp_port", "owner", "shared", )
+        fields = ("id", "smtp_host", "smtp_port", "owner", "shared", "email", "password", )
         read_only_fields = ("owner", )
 
     def validate(self, data):
         validated_data = super().validate(data)
-        server = smtplib.SMTP(validated_data['smtp_host'],
-                              validated_data['smtp_port'])
-        server.ehlo()
-        server.starttls()
-        try:
-            server.login(validated_data['email'], validated_data['password'])
-        except smtplib.SMTPAuthenticationError as e:
-            error_message = f'SMTP server login error: invalid email or password '
-            raise ValidationError(error_message)
-        finally:
-            server.quit()
-        return data
+
+        if 'smtp_host' in validated_data \
+                or 'smtp_port' in validated_data \
+                or 'email' in validated_data \
+                or 'password' in validated_data:
+
+            server = smtplib.SMTP(validated_data['smtp_host'],
+                                  validated_data['smtp_port'])
+            server.ehlo()
+            server.starttls()
+            try:
+                server.login(validated_data['email'], validated_data['password'])
+            except smtplib.SMTPAuthenticationError as e:
+                error_message = f'SMTP server login error: invalid email or password '
+                raise ValidationError(error_message)
+            finally:
+                server.quit()
+
+            del (validated_data["email"])
+            del (validated_data["password"])
+
+        return validated_data
 
     def to_representation(self, instance):
         data = super(TroodMailboxSerializer, self).to_representation(instance)
         data.update(InboxSerializer(instance.inbox).data)
 
         return data
-
-    def to_internal_value(self, data):
-        data["sender_settings"] = super(TroodMailboxSerializer, self).to_internal_value(data)
-        inbox_serializer = InboxSerializer(data=data)
-        inbox_serializer.is_valid(raise_exception=True)
-        data["inbox_settings"] = inbox_serializer.validated_data
-
-        return data
-
-    def create(self, validated_data):
-        inbox = Mailbox.objects.create(**validated_data["inbox_settings"])
-
-        return CustomMailbox.objects.create(
-            **validated_data["sender_settings"], inbox=inbox, owner=validated_data["owner"]
-        )
 
 
 class MoveMailsToFolderSerializer(serializers.ModelSerializer):
