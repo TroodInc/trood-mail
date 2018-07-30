@@ -3,7 +3,7 @@ from django_filters.rest_framework import filters, FilterSet
 from mail.api.models import Mail
 
 
-class MailsFilter(FilterSet):
+class ChainsFilter(FilterSet):
     folder = filters.CharFilter(method='filter_folder')
 
     class Meta:
@@ -12,12 +12,12 @@ class MailsFilter(FilterSet):
 
     def filter_folder(self, qs, name, value):
         if value == 'inbox':
-            filter_obj = {'folder__isnull': True, 'outgoing': False}
+            return qs.exclude(**{'chain__folders__owner': self.request.user.id})
 
         elif value == 'outbox':
-            filter_obj = {'folder__isnull': True, 'outgoing': True}
+            filter_obj = {'outgoing': True}
 
         else:
-            filter_obj = {'folder': value}
+            filter_obj = {'chain__folders__in': value}
 
         return qs.filter(**filter_obj)

@@ -31,17 +31,6 @@ class ModelApiError(Exception):
     pass
 
 
-class Folder(models.Model):
-    owner = models.IntegerField(_('Owner'), null=True, default=None)
-    name = models.CharField(max_length=128, null=False)
-
-    class Meta:
-        ordering = ['name']
-
-    def __str__(self):
-        return f'{self.name}'
-
-
 class Inbox(Mailbox):
     class Meta:
         proxy = True
@@ -185,12 +174,15 @@ class CustomMailbox(models.Model):
     shared = models.BooleanField(default=False)
 
 
+class Chain(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+
+
 # @todo: OPTIMIZZZZZEEEE !!!!!!!
 class Mail(models.Model):
-    folder = models.ForeignKey(Folder, null=True, related_name='messages', on_delete=models.SET_NULL)
     bcc = models.TextField(null=True)
     draft = models.BooleanField(default=False)
-    chain = models.UUIDField(default=uuid.uuid4)
+    chain = models.ForeignKey(Chain, null=True, on_delete=models.SET_NULL)
 
     mailbox = models.ForeignKey(
         'django_mailbox.Mailbox', verbose_name=_(u'Mailbox'), on_delete=models.SET_NULL, null=True
@@ -445,6 +437,18 @@ class Mail(models.Model):
             self.chain = self.in_reply_to.chain
 
         super(Mail, self).save()
+
+
+class Folder(models.Model):
+    owner = models.IntegerField(_('Owner'), null=True, default=None)
+    name = models.CharField(max_length=128, null=False)
+    chains = models.ManyToManyField(Chain, related_name="folders")
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name}'
 
 
 class Attachment(models.Model):
