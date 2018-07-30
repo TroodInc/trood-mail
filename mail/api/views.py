@@ -1,18 +1,19 @@
 import itertools
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters, status
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
-from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from mail.api.filters import MailsFilter
-from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox
+from mail.api.filters import ChainsFilter
+from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
@@ -25,7 +26,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
 
     permission_classes = (IsAuthenticated, )
 
-    @detail_route(methods=["POST"])
+    @action(detail=True, methods=["POST"])
     def fetch(self, request, pk=None):
         mailbox = self.get_object()
 
@@ -38,7 +39,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
 
         return Response(data, status=HTTP_200_OK)
 
-    @list_route(methods=["POST"])
+    @action(detail=False, methods=["POST"])
     def fetchall(self, request):
         queryset = self.get_queryset()
 
@@ -94,7 +95,6 @@ class MailboxViewSet(viewsets.ModelViewSet):
         inbox.is_valid(raise_exception=True)
         inbox.save()
 
-        print(request.data)
         mailbox = TroodMailboxSerializer(data=request.data)
         mailbox.is_valid(raise_exception=True)
         mailbox.save(owner=self.request.user.id, inbox=inbox.instance)
@@ -121,7 +121,7 @@ class MailViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
-    filter_class = MailsFilter
+    filter_fields = ('chain', 'outgoing')
 
     permission_classes = (IsAuthenticated, )
 
@@ -135,12 +135,13 @@ class MailViewSet(viewsets.ModelViewSet):
             mail.send()
 
 
-class ChainViewSet(ReadOnlyModelViewSet):
+class ChainViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('subject', 'bcc', 'from_header', 'to_header',)
     ordering_fields = ('last', 'first', 'processed')
+    filter_class = ChainsFilter
 
     def get_queryset(self):
         q_total = Count("pk")
@@ -182,6 +183,23 @@ class ChainViewSet(ReadOnlyModelViewSet):
 
         return self.get_paginated_response(result)
 
+    def update(self, request, pk, *args, **kwargs):
+        folder_id = request.data.pop("folder", None)
+        chain = Chain.objects.get(id=pk)
+
+        if folder_id:
+            existing = chain.folders.filter(owner=request.user.id)
+            chain.folders.remove(*existing)
+            if folder_id != 'inbox':
+                try:
+                    folder = Folder.objects.get(id=folder_id, owner=request.user.id)
+                    chain.folders.add(folder)
+
+                except ObjectDoesNotExist:
+                    raise ValidationError("You cant move to <folder: {}>".format(folder_id))
+
+        return Response(status=HTTP_200_OK)
+
     def _get_chain_contacts(self, chain):
         mails = Mail.objects.filter(chain=chain)
         addresses = [mail.address for mail in mails]
@@ -195,7 +213,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     serializer_class = FolderSerializer
     permission_classes = (IsAuthenticated, )
 
-    @detail_route(methods=['POST'], url_path='bulk-move')
+    @action(detail=True, methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
         folder = self.get_object()
         serializer = MoveMailsToFolderSerializer(data=request.data)
@@ -225,7 +243,7 @@ class FolderViewSet(viewsets.ModelViewSet):
 
         return Response(data, status=HTTP_200_OK)
 
-    @detail_route(methods=['PATCH'], url_path='bulk-assign')
+    @action(detail=True, methods=['PATCH'], url_path='bulk-assign')
     def bulk_assign(self, request, *args, **kwargs):
         folder = self.get_object()
         serializer = BulkAssignSerializer(data=request.data, partial=True)
@@ -240,7 +258,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         return Response(ContactSerializer(contacts, many=True).data,
                         status=HTTP_200_OK)
 
-    @detail_route(methods=['PATCH'], url_path='bulk-unassign')
+    @action(detail=True, methods=['PATCH'], url_path='bulk-unassign')
     def bulk_unassign(self, request, *args, **kwargs):
         serializer = BulkAssignSerializer(data=request.data, partial=True)
         serializer.is_valid()
