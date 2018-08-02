@@ -18,6 +18,6 @@ class ChainsFilter(FilterSet):
             filter_obj = {'outgoing': True}
 
         else:
-            filter_obj = {'chain__folders__in': value}
+            filter_obj = {'chain__folders': value}
 
         return qs.filter(**filter_obj)
