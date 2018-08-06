@@ -2,7 +2,7 @@ import itertools
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import Count, Q, Max, Min, OuterRef, Subquery
+from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters, status
@@ -143,14 +143,36 @@ class ChainViewSet(viewsets.ModelViewSet):
     ordering_fields = ('last', 'first', 'processed')
     filter_class = ChainsFilter
 
-    def get_queryset(self):
-        q_total = Count("pk")
-        q_unread = Count("pk", filter=Q(read=None))
-        q_subj = Mail.objects.filter(chain=OuterRef('chain')).order_by("processed")[:1]
+    def get_object(self):
+        queryset = Chain.objects.all()
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
 
-        queryset = Mail.objects.values("chain").order_by("chain").distinct().annotate(
-            total=q_total, unread=q_unread,
-            last=Max("processed"), first=Min("processed"),
+        assert lookup_url_kwarg in self.kwargs, (
+                'Expected view %s to be called with a URL keyword argument '
+                'named "%s". Fix your URL conf, or set the `.lookup_field` '
+                'attribute on the view correctly.' %
+                (self.__class__.__name__, lookup_url_kwarg)
+        )
+
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        obj = get_object_or_404(queryset, **filter_kwargs)
+
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj
+
+    def get_queryset(self):
+        q_total = Count("mail__pk")
+        q_unread = Count("mail__pk", filter=Q(mail__read=None))
+        q_received = Count("mail__pk", filter=Q(mail__outgoing=False))
+        q_sent = Count("mail__pk", filter=Q(mail__outgoing=True))
+        q_subj = Mail.objects.filter(chain=OuterRef('id')).order_by("processed")[:1]
+
+        queryset = Chain.objects.values("id").order_by("id").distinct().annotate(
+            chain=F("id"),
+            total=q_total, unread=q_unread, received=q_received, sent=q_sent,
+            last=Max("mail__processed"), first=Min("mail__processed"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
 
@@ -178,14 +200,14 @@ class ChainViewSet(viewsets.ModelViewSet):
             for chain in page:
                 result.append({
                     **chain,
-                    'contacts': self._get_chain_contacts(chain['chain'])
+                    'contacts': self._get_chain_contacts(chain['id'])
                 })
 
         return self.get_paginated_response(result)
 
-    def update(self, request, pk, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         folder_id = request.data.pop("folder", None)
-        chain = Chain.objects.get(id=pk)
+        chain = self.get_object()
 
         if folder_id:
             existing = chain.folders.filter(owner=request.user.id)
