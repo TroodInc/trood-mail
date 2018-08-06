@@ -1,23 +1,24 @@
 from django_filters.rest_framework import filters, FilterSet
 
-from mail.api.models import Mail
+from mail.api.models import Chain
 
 
 class ChainsFilter(FilterSet):
     folder = filters.CharFilter(method='filter_folder')
 
     class Meta:
-        model = Mail
-        fields = ('outgoing', 'chain')
+        model = Chain
+        fields = ('folders', 'id')
 
     def filter_folder(self, qs, name, value):
         if value == 'inbox':
-            return qs.exclude(**{'chain__folders__owner': self.request.user.id})
+            qs = qs.exclude(folders__owner=self.request.user.id)
+            return qs.filter(received__gte=1)
 
         elif value == 'outbox':
-            filter_obj = {'outgoing': True}
+            filter_obj = {'sent__gt': 0}
 
         else:
-            filter_obj = {'chain__folders': value}
+            filter_obj = {'folders': value}
 
         return qs.filter(**filter_obj)
