@@ -2,6 +2,7 @@ import email
 import gzip
 import logging
 import mimetypes
+import re
 import smtplib
 import uuid
 from email.encoders import encode_quopri, encode_base64
@@ -199,7 +200,7 @@ class Mail(models.Model):
     from_header = models.CharField(_('From header'), max_length=255, blank=True, null=True)
     to_header = models.TextField(_(u'To header'), blank=True, null=True)
     outgoing = models.BooleanField(_(u'Outgoing'), default=False, blank=True, )
-    body = models.TextField(_(u'Body'), blank=True, null=True)
+    body = models.TextField(_(u'Body'), blank=True, default="")
     encoded = models.BooleanField(
         _(u'Encoded'), default=False, help_text=_('True if the e-mail body is Base64 encoded'),
     )
@@ -315,12 +316,6 @@ class Mail(models.Model):
         return new
 
     def get_body(self):
-        """Returns the `body` field of this record.
-
-        This will automatically base64-decode the message contents
-        if they are encoded as such.
-
-        """
         if self.encoded:
             return base64.b64decode(self.body.encode('ascii'))
         return self.body.encode('utf-8')
@@ -488,7 +483,7 @@ class Attachment(models.Model):
 
     def __setitem__(self, name, value):
         rehydrated = self._get_rehydrated_headers()
-        rehydrated[name] = value
+        rehydrated[name] = re.sub("\r\n", "", value)
         self._set_dehydrated_headers(rehydrated)
 
     def get_filename(self):
