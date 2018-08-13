@@ -168,10 +168,19 @@ class Inbox(Mailbox):
 
 
 class CustomMailbox(models.Model):
+    TLS = 'tls'
+    SSL = 'ssl'
+
+    SECURE_TYPES = (
+        (TLS, "TLS"),
+        (SSL, "SSL"),
+    )
+
     owner = models.IntegerField(_('Owner'), null=True, default=None)
     inbox = models.OneToOneField(Inbox, related_name="mailer", on_delete=models.CASCADE)
     smtp_host = models.CharField(max_length=128)
-    smtp_port = models.IntegerField(default=587)
+    smtp_port = models.IntegerField(default=465)
+    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, default=SSL)
     shared = models.BooleanField(default=False)
 
 
@@ -397,10 +406,13 @@ class Mail(models.Model):
             file.add_header('X-Attachment-Id', meta['id'])
             msg.attach(file)
 
-        server = smtplib.SMTP(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
-        server.ehlo()
-        server.starttls()
-        server.login(self.mailbox.username, self.mailbox.password)
+        if self.mailbox.mailer.smtp_secure == "ssl":
+            server = smtplib.SMTP_SSL(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
+        else:
+            server = smtplib.SMTP(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
+            server.starttls()
+
+        server.login(self.mailbox.from_email, self.mailbox.password)
         server.send_message(msg=msg)
         server.quit()
 
