@@ -139,8 +139,8 @@ class ChainViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('subject', 'bcc', 'from_header', 'to_header',)
-    ordering_fields = ('last', 'first', 'processed')
+    search_fields = ('mail__subject', 'mail__bcc', 'mail__from_header', 'mail__to_header',)
+    ordering_fields = ('last', 'first', 'mail__processed')
     filter_class = ChainsFilter
 
     def get_object(self):
