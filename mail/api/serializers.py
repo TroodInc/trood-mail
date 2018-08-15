@@ -1,6 +1,6 @@
 import smtplib
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode, quote_plus
 
 from django.core.files.storage import default_storage
 from django_mailbox.models import Mailbox
@@ -190,7 +190,7 @@ class InboxSerializer(serializers.ModelSerializer):
         if not email and self.instance:
             email = self.instance.from_email
 
-        data['uri'] = "imap{}://{}:{}@{}:{}".format(imap_secure, email.split("@")[0], password, host, port)
+        data['uri'] = "imap{}://{}:{}@{}:{}".format(imap_secure, quote_plus(email), quote_plus(password), host, port)
 
         return data
 
