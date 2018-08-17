@@ -12,7 +12,7 @@ from email import encoders
 from email import utils as email_utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import parseaddr
+from email.utils import parseaddr, parsedate_to_datetime
 
 import base64
 import os
@@ -130,6 +130,7 @@ class Inbox(Mailbox):
         if settings['store_original_message']:
             self._process_save_original_message(message, msg)
         msg.mailbox = self
+
         if 'subject' in message:
             msg.subject = (
                 utils.convert_header_to_unicode(message['subject'])[0:255]
@@ -153,7 +154,6 @@ class Inbox(Mailbox):
             except IndexError:
                 pass
 
-        print(message['in-reply-to'])
         msg.save()
         message = self._get_dehydrated_message(message, msg)
         try:
@@ -162,6 +162,9 @@ class Inbox(Mailbox):
             logger.warning("Failed to parse message: %s", exc, )
             return None
         msg.set_body(body)
+
+        if 'date' in message:
+            msg.date = parsedate_to_datetime(message['date'])
 
         msg.save()
         return msg
@@ -206,14 +209,14 @@ class Mail(models.Model):
         null=True, verbose_name=_(u'In reply to'), on_delete=models.SET_NULL
     )
 
-    from_header = models.CharField(_('From header'), max_length=255, blank=True, null=True)
-    to_header = models.TextField(_(u'To header'), blank=True, null=True)
-    outgoing = models.BooleanField(_(u'Outgoing'), default=False, blank=True, )
+    from_header = models.CharField(_('From header'), max_length=255, blank=True, default="")
+    to_header = models.TextField(_(u'To header'), blank=True, default="")
+    outgoing = models.BooleanField(_(u'Outgoing'), default=False)
     body = models.TextField(_(u'Body'), blank=True, default="")
     encoded = models.BooleanField(
         _(u'Encoded'), default=False, help_text=_('True if the e-mail body is Base64 encoded'),
     )
-
+    date = models.DateTimeField(_('Date'), auto_now_add=True, blank=True, null=True)
     processed = models.DateTimeField(_('Processed'), auto_now_add=True)
     read = models.DateTimeField(_(u'Read'), default=None, blank=True, null=True,)
     is_read = models.BooleanField(default=False)
