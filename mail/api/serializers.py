@@ -65,7 +65,7 @@ class AttachmentsSerializer(serializers.ModelSerializer):
 class MailSerializer(serializers.ModelSerializer):
     to = EmailsListHeaderField(source="to_header")
     bcc = EmailsListHeaderField(required=False)
-    created_at = serializers.DateTimeField(source="processed", read_only=True)
+    created_at = serializers.DateTimeField(source="date", read_only=True)
     attachments = AttachmentsSerializer(many=True, required=False)
     read_date = serializers.DateTimeField(source="read", read_only=True)
 
@@ -145,7 +145,7 @@ class InboxSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Mailbox
-        fields = ("name", "active", "email", "password", "imap_host", "imap_port", "last_polling")
+        fields = ("name", "active", "email", "password", "imap_host", "imap_port", "last_polling",)
 
     def to_representation(self, instance):
         data = super(InboxSerializer, self).to_representation(instance)
