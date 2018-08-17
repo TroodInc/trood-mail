@@ -140,7 +140,7 @@ class ChainViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('mail__subject', 'mail__bcc', 'mail__from_header', 'mail__to_header',)
-    ordering_fields = ('last', 'first', 'mail__processed')
+    ordering_fields = ('last', 'first', 'mail__date')
     filter_class = ChainsFilter
 
     def get_object(self):
@@ -167,12 +167,12 @@ class ChainViewSet(viewsets.ModelViewSet):
         q_unread = Count("mail__pk", filter=Q(mail__read=None))
         q_received = Count("mail__pk", filter=Q(mail__outgoing=False))
         q_sent = Count("mail__pk", filter=Q(mail__outgoing=True))
-        q_subj = Mail.objects.filter(chain=OuterRef('id')).order_by("processed")[:1]
+        q_subj = Mail.objects.filter(chain=OuterRef('id')).order_by("date")[:1]
 
         queryset = Chain.objects.values("id").order_by("id").distinct().annotate(
             chain=F("id"),
             total=q_total, unread=q_unread, received=q_received, sent=q_sent,
-            last=Max("mail__processed"), first=Min("mail__processed"),
+            last=Max("mail__date"), first=Min("mail__date"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
 
