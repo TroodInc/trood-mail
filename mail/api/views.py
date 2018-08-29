@@ -4,11 +4,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, ParseError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
 
@@ -23,8 +21,6 @@ from mail.api.serializers import MailSerializer, \
 class MailboxViewSet(viewsets.ModelViewSet):
     queryset = CustomMailbox.objects.all()
     serializer_class = TroodMailboxSerializer
-
-    permission_classes = (IsAuthenticated, )
 
     @action(detail=True, methods=["POST"])
     def fetch(self, request, pk=None):
@@ -119,11 +115,8 @@ class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
     pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
     filter_fields = ('chain', 'outgoing')
-
-    permission_classes = (IsAuthenticated, )
 
     def perform_create(self, serializer):
         mail = serializer.save(outgoing=True)
@@ -137,8 +130,6 @@ class MailViewSet(viewsets.ModelViewSet):
 
 class ChainViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthenticated,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('mail__subject', 'mail__bcc', 'mail__from_header', 'mail__to_header',)
     ordering_fields = ('last', 'first', 'mail__date')
     filter_class = ChainsFilter
@@ -233,7 +224,6 @@ class ChainViewSet(viewsets.ModelViewSet):
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
-    permission_classes = (IsAuthenticated, )
 
     @action(detail=True, methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
@@ -301,9 +291,7 @@ class FolderViewSet(viewsets.ModelViewSet):
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     search_fields = ('email', 'name')
-    permission_classes = (IsAuthenticated, )
 
     def update(self, request, *args, **kwargs):
         contact = self.get_object()
