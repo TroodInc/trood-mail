@@ -57,6 +57,7 @@ class BaseConfiguration(Configuration):
         'django.contrib.auth.middleware.AuthenticationMiddleware',
         'django.contrib.messages.middleware.MessageMiddleware',
         'django.middleware.clickjacking.XFrameOptionsMiddleware',
+        'trood_auth_client.middleware.TroodABACMiddleware',
     ]
 
     ROOT_URLCONF = 'mail.urls'
@@ -156,8 +157,22 @@ class BaseConfiguration(Configuration):
         'DEFAULT_AUTHENTICATION_CLASSES': (
             'trood_auth_client.authentication.TroodTokenAuthentication',
         ),
-        'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+        'DEFAULT_PERMISSION_CLASSES': (
+            'rest_framework.permissions.IsAuthenticated',
+            'trood_auth_client.permissions.TroodABACPermission',
+        ),
+        'DEFAULT_FILTER_BACKENDS': (
+            'trood_auth_client.filter.TroodABACFilterBackend',
+            'django_filters.rest_framework.DjangoFilterBackend',
+            'rest_framework.filters.SearchFilter',
+            'rest_framework.filters.OrderingFilter',
+        ),
         'PAGE_SIZE': 10
+    }
+
+    TROOD_ABAC = {
+        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
+        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
     }
 
     RAVEN_CONFIG = {

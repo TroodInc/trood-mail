@@ -446,7 +446,7 @@ class Mail(models.Model):
         if self.in_reply_to:
             self.chain = self.in_reply_to.chain
 
-        else:
+        elif self.chain is None:
             self.chain = Chain.objects.create()
 
         super(Mail, self).save()
