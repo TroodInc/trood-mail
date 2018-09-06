@@ -1,4 +1,5 @@
 from django.test import testcases
+from hamcrest import *
 
 from mail.api.models import Mail
 from mail.api.serializers import MailSerializer
@@ -24,21 +25,9 @@ class MailSerializerTestCase(testcases.TestCase):
 
         serialized_data = MailSerializer(instance=mail).data
 
-        expected_data = {
-             'id': mail.id,
-             'mailbox': self.maildir.mailbox.id,
-             'subject': 'Subject',
-             'body': 'Body',
-             'to': ['to@mail.com'],
-             'bcc': None,
-             'encoded': False,
-             'from_address': ['from@mail.com'],
-             'read': None,
-             'outgoing': False,
-             'in_reply_to': None,
-             'replies': [],
-             'folder': None,
-             'attachments': []
-        }
-
-        assert serialized_data == expected_data
+        assert_that(serialized_data, has_entries({
+            "subject": 'Subject',
+            "body": 'Body',
+            "from_address": ["from@mail.com"],
+            "to": ["to@mail.com"]
+        }))

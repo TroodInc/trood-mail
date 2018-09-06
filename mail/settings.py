@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 import os
-import raven
 
 from configurations import Configuration
 
@@ -20,19 +19,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class BaseConfiguration(Configuration):
-    # Quick-start development settings - unsuitable for production
-    # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
-
-    # SECURITY WARNING: keep the secret key used in production secret!
     SECRET_KEY = '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr'
 
-    # SECURITY WARNING: don't run with debug turned on in production!
-    DEBUG = True
-
     ALLOWED_HOSTS = ['*']
-
-
-    # Application definition
 
     INSTALLED_APPS = [
         'django.contrib.admin',
@@ -57,7 +46,6 @@ class BaseConfiguration(Configuration):
         'django.contrib.auth.middleware.AuthenticationMiddleware',
         'django.contrib.messages.middleware.MessageMiddleware',
         'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'trood_auth_client.middleware.TroodABACMiddleware',
     ]
 
     ROOT_URLCONF = 'mail.urls'
@@ -79,10 +67,6 @@ class BaseConfiguration(Configuration):
     ]
 
     WSGI_APPLICATION = 'mail.wsgi.application'
-
-
-    # Database
-    # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
     DATABASES = {
         'default': {
@@ -151,6 +135,32 @@ class BaseConfiguration(Configuration):
 
     USE_TZ = True
 
+    REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+            'trood_auth_client.authentication.TroodTokenAuthentication',
+        ),
+        'DEFAULT_PERMISSION_CLASSES': (
+            'rest_framework.permissions.IsAuthenticated',
+        ),
+        'DEFAULT_FILTER_BACKENDS': (
+            'django_filters.rest_framework.DjangoFilterBackend',
+            'rest_framework.filters.SearchFilter',
+            'rest_framework.filters.OrderingFilter',
+        ),
+        'PAGE_SIZE': 10
+    }
+
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    MEDIA_URL = '/media/'
+
+
+class Development(BaseConfiguration):
+    DEBUG = True
+
+    MIDDLEWARE = BaseConfiguration.MIDDLEWARE + [
+        'trood_auth_client.middleware.TroodABACMiddleware',
+    ]
+
     TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
 
     REST_FRAMEWORK = {
@@ -186,13 +196,45 @@ class BaseConfiguration(Configuration):
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
     DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
 
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    MEDIA_URL = '/media/'
-
-
-class Development(BaseConfiguration):
-    DEBUG = True
-
 
 class Production(BaseConfiguration):
     DEBUG = False
+
+    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
+
+    REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+            'trood_auth_client.authentication.TroodTokenAuthentication',
+        ),
+        'DEFAULT_PERMISSION_CLASSES': (
+            'rest_framework.permissions.IsAuthenticated',
+            'trood_auth_client.permissions.TroodABACPermission',
+        ),
+        'DEFAULT_FILTER_BACKENDS': (
+            'trood_auth_client.filter.TroodABACFilterBackend',
+            'django_filters.rest_framework.DjangoFilterBackend',
+            'rest_framework.filters.SearchFilter',
+            'rest_framework.filters.OrderingFilter',
+        ),
+        'PAGE_SIZE': 10
+    }
+
+    TROOD_ABAC = {
+        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
+        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
+    }
+
+    RAVEN_CONFIG = {
+        'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
+        'release': 'prod'
+    }
+
+    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
+    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
+
+    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
+    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
+
+
+class Test(BaseConfiguration):
+    DEBUG = True
