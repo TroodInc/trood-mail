@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
+from datetime import datetime
+
 import os
 
 from configurations import Configuration
@@ -136,12 +138,8 @@ class BaseConfiguration(Configuration):
     USE_TZ = True
 
     REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'trood_auth_client.authentication.TroodTokenAuthentication',
-        ),
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-        ),
+        'DEFAULT_AUTHENTICATION_CLASSES': (),
+        'DEFAULT_PERMISSION_CLASSES': (),
         'DEFAULT_FILTER_BACKENDS': (
             'django_filters.rest_framework.DjangoFilterBackend',
             'rest_framework.filters.SearchFilter',
@@ -152,6 +150,10 @@ class BaseConfiguration(Configuration):
 
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/media/'
+
+    SKIP_MAILS_BEFORE = datetime.strptime(
+        os.environ.get("SKIP_MAILS_BEFORE", "01-01-2018"), "%d-%m-%Y"
+    ).date()
 
 
 class Development(BaseConfiguration):

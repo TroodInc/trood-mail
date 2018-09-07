@@ -1,5 +1,6 @@
-import json
+from datetime import datetime
 
+from django.conf import settings
 from hamcrest import *
 from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
@@ -44,6 +45,8 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=trood_user)
 
+        settings.SKIP_MAILS_BEFORE = datetime.strptime("01-01-2012", "%d-%m-%Y").date()
+
     def test_create_mailbox(self):
         request_data = {
             "name": "cool",
@@ -70,9 +73,30 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         )
 
         assert response.status_code == HTTP_200_OK
-        assert response.data['mails received'] == 1
+        assert response.data['mails_received'] == 1
         # Added contacts of sender and recipient
-        assert response.data['contacts added'] == 2
+        assert response.data['contacts_added'] == 2
+
+    def test_do_not_fetch_mails_older_than_configured(self):
+        content = self.maildir.create_mail('eugene', 'dharmagetic@gmail.com')
+
+        self.maildir.send_mail(content)
+
+        settings.SKIP_MAILS_BEFORE = datetime.strptime("01-01-2019", "%d-%m-%Y").date()
+        response = self.client.post(
+            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
+            format='json'
+        )
+        print(response.data)
+        assert_that(response.data['mails_received'], is_(0))
+
+        settings.SKIP_MAILS_BEFORE = datetime.strptime("01-01-2012", "%d-%m-%Y").date()
+        response = self.client.post(
+            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
+            format='json'
+        )
+        assert_that(response.data['mails_received'], is_(1))
+
 
     def test_contact_already_created(self):
         contact = Contact.objects.create(email='dharmagetic@gmail.com')
@@ -82,9 +106,9 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         fetch_response = self.send_fetch_email([contact.email])
 
         assert fetch_response.status_code == HTTP_200_OK
-        assert fetch_response.data['mails received'] == 1
+        assert fetch_response.data['mails_received'] == 1
         # Created only recipient contact
-        assert fetch_response.data['contacts added'] == 1
+        assert fetch_response.data['contacts_added'] == 1
 
     def tearDown(self):
         self.maildir.delete()
@@ -107,8 +131,8 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
         response = self.client.post(
             f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/', format='json')
         assert response.status_code == HTTP_200_OK
-        assert response.data['mails received'] == num_of_mails
-        assert response.data['contacts added'] == 2
+        assert response.data['mails_received'] == num_of_mails
+        assert response.data['contacts_added'] == 2
 
         # Then gather them
         response = self.client.get(f'/api/v1.0/mails/', format='json')

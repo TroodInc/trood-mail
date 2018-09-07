@@ -16,6 +16,7 @@ from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
     BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer
+from mail.api.utils import mail_fetching_filter
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
@@ -29,8 +30,8 @@ class MailboxViewSet(viewsets.ModelViewSet):
         mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
 
         data = {
-            "mails received": len(mails),
-            "contacts added": new_contacts
+            "mails_received": len(mails),
+            "contacts_added": new_contacts
         }
 
         return Response(data, status=HTTP_200_OK)
@@ -54,15 +55,15 @@ class MailboxViewSet(viewsets.ModelViewSet):
                 })
 
         data = {
-            "mails received": mails_total,
-            "contacts added": contast_total,
+            "mails_received": mails_total,
+            "contact_added": contast_total,
             "fails": failed
         }
 
         return Response(data, status=HTTP_200_OK)
 
     def _fetch_mailbox(self, mailbox):
-        mails = mailbox.get_new_mail()
+        mails = mailbox.get_new_mail(mail_fetching_filter)
 
         new_contacts = 0
         for mail in mails:
