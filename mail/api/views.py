@@ -8,14 +8,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
 from mail.api.filters import ChainsFilter
-from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain
+from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain, Template
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
-    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer
+    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer, TemplateSerializer
 from mail.api.utils import mail_fetching_filter
 
 
@@ -118,6 +118,22 @@ class MailViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
     filter_fields = ('chain', 'outgoing')
+
+    @action(detail=False, methods=["POST"])
+    def from_template(self, request):
+        template = request.data.pop("template", None)
+        template = get_object_or_404(Template.objects.all(), alias=template)
+
+        rendered = template.render(request.data.pop("data", None))
+
+        request.data.update(rendered)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_create(serializer)
+
+        return Response(serializer.data, HTTP_201_CREATED)
 
     def perform_create(self, serializer):
         mail = serializer.save(outgoing=True)
@@ -310,3 +326,11 @@ class ContactViewSet(viewsets.ModelViewSet):
         response_data = ContactSerializer(instance=contact).data
 
         return Response(response_data, status=HTTP_200_OK)
+
+
+class TemplateViewSet(viewsets.ModelViewSet):
+    queryset = Template.objects.all()
+    serializer_class = TemplateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user.id)
