@@ -7,7 +7,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 
-from mail.api.models import Contact, Folder, Mail
+from mail.api.models import Contact, Folder, Mail, Template
 
 from mail.api.tests.utils import Maildir, trood_user
 
@@ -183,6 +183,23 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
 
     def tearDown(self):
         self.maildir.delete()
+
+
+class TemplateTest(APITestCase):
+
+    def test_template_renders(self):
+        template = Template.objects.create(
+            alias="TEST_TEMPLATE",
+            subject="Hello {username}!",
+            body="It as {test_name} test!"
+        )
+
+        data = template.render({"username": "test_user", "test_name": "template"})
+
+        assert_that(data, equal_to({
+            "subject": "Hello test_user!",
+            "body": "It as template test!"
+        }))
 
 
 class FolderViewSetTestCase(MailTestMixin, APITestCase):

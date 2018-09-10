@@ -549,3 +549,17 @@ class Contact(models.Model):
         else:
             self.folder = folder
             self.save()
+
+
+class Template(models.Model):
+    owner = models.IntegerField(_('Owner'), null=True, default=None)
+    alias = models.CharField(_(u'Alias'), max_length=128, null=False, unique=True)
+    name = models.CharField(_(u'Name'), max_length=128, null=False)
+    subject = models.CharField(_(u'Subject'), max_length=128, null=False)
+    body = models.TextField(_(u'Body'), blank=True, default="")
+
+    def render(self, data):
+        return {
+            "subject": self.subject.format(**data),
+            "body": self.body.format(**data),
+        }
