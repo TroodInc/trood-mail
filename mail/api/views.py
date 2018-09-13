@@ -172,14 +172,19 @@ class ChainViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         q_total = Count("mail__pk")
-        q_unread = Count("mail__pk", filter=Q(mail__read=None))
+        q_unread = Count("mail__pk", filter=Q(mail__is_read=False, mail__outgoing=False))
         q_received = Count("mail__pk", filter=Q(mail__outgoing=False))
         q_sent = Count("mail__pk", filter=Q(mail__outgoing=True))
         q_subj = Mail.objects.filter(chain=OuterRef('id')).order_by("date")[:1]
 
-        queryset = Chain.objects.values("id").order_by("id").distinct().annotate(
+        queryset = Chain.objects.values("id")
+
+        queryset = self.filter_queryset(queryset)
+
+        queryset = queryset.order_by("id").distinct().annotate(
             chain=F("id"),
-            total=q_total, unread=q_unread, received=q_received, sent=q_sent,
+            received=q_received, sent=q_sent,
+            total=q_total, unread=q_unread,
             last=Max("mail__date"), first=Min("mail__date"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
@@ -187,8 +192,7 @@ class ChainViewSet(viewsets.ModelViewSet):
         return queryset
 
     def retrieve(self, request, pk):
-        queryset = self.filter_queryset(self.get_queryset())
-        chain = get_object_or_404(queryset, chain=pk)
+        chain = get_object_or_404(self.get_queryset(), chain=pk)
 
         result = {
             **chain,
@@ -198,10 +202,7 @@ class ChainViewSet(viewsets.ModelViewSet):
         return Response(result)
 
     def list(self, request):
-        queryset = self.get_queryset()
-        queryset = self.filter_queryset(queryset)
-
-        page = self.paginate_queryset(queryset)
+        page = self.paginate_queryset(self.get_queryset())
 
         result = []
         if page is not None:
