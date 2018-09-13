@@ -181,7 +181,7 @@ class ChainViewSet(viewsets.ModelViewSet):
 
         queryset = self.filter_queryset(queryset)
 
-        queryset = queryset.order_by("id").distinct().annotate(
+        queryset = queryset.distinct().annotate(
             chain=F("id"),
             received=q_received, sent=q_sent,
             total=q_total, unread=q_unread,
