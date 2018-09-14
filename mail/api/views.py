@@ -4,27 +4,27 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, filters, status
+
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, ParseError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
 from mail.api.filters import ChainsFilter
+
 from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
     BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer
+from mail.api.utils import mail_fetching_filter
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
     queryset = CustomMailbox.objects.all()
     serializer_class = TroodMailboxSerializer
-
-    permission_classes = (IsAuthenticated, )
 
     @action(detail=True, methods=["POST"])
     def fetch(self, request, pk=None):
@@ -33,8 +33,8 @@ class MailboxViewSet(viewsets.ModelViewSet):
         mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
 
         data = {
-            "mails received": len(mails),
-            "contacts added": new_contacts
+            "mails_received": len(mails),
+            "contacts_added": new_contacts
         }
 
         return Response(data, status=HTTP_200_OK)
@@ -58,15 +58,15 @@ class MailboxViewSet(viewsets.ModelViewSet):
                 })
 
         data = {
-            "mails received": mails_total,
-            "contacts added": contast_total,
+            "mails_received": mails_total,
+            "contact_added": contast_total,
             "fails": failed
         }
 
         return Response(data, status=HTTP_200_OK)
 
     def _fetch_mailbox(self, mailbox):
-        mails = mailbox.get_new_mail()
+        mails = mailbox.get_new_mail(mail_fetching_filter)
 
         new_contacts = 0
         for mail in mails:
@@ -119,11 +119,24 @@ class MailViewSet(viewsets.ModelViewSet):
     queryset = Mail.objects.all()
     serializer_class = MailSerializer
     pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
     filter_fields = ('chain', 'outgoing')
 
-    permission_classes = (IsAuthenticated, )
+    @action(detail=False, methods=["POST"])
+    def from_template(self, request):
+        template = request.data.pop("template", None)
+        template = get_object_or_404(Template.objects.all(), alias=template)
+
+        rendered = template.render(request.data.pop("data", None))
+
+        request.data.update(rendered)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_create(serializer)
+
+        return Response(serializer.data, HTTP_201_CREATED)
 
     def perform_create(self, serializer):
         mail = serializer.save(outgoing=True)
@@ -137,8 +150,6 @@ class MailViewSet(viewsets.ModelViewSet):
 
 class ChainViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthenticated,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('mail__subject', 'mail__bcc', 'mail__from_header', 'mail__to_header',)
     ordering_fields = ('last', 'first', 'mail__date')
     filter_class = ChainsFilter
@@ -164,14 +175,19 @@ class ChainViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         q_total = Count("mail__pk")
-        q_unread = Count("mail__pk", filter=Q(mail__read=None))
+        q_unread = Count("mail__pk", filter=Q(mail__is_read=False, mail__outgoing=False))
         q_received = Count("mail__pk", filter=Q(mail__outgoing=False))
         q_sent = Count("mail__pk", filter=Q(mail__outgoing=True))
         q_subj = Mail.objects.filter(chain=OuterRef('id')).order_by("date")[:1]
 
-        queryset = Chain.objects.values("id").order_by("id").distinct().annotate(
+        queryset = Chain.objects.values("id")
+
+        queryset = self.filter_queryset(queryset)
+
+        queryset = queryset.distinct().annotate(
             chain=F("id"),
-            total=q_total, unread=q_unread, received=q_received, sent=q_sent,
+            received=q_received, sent=q_sent,
+            total=q_total, unread=q_unread,
             last=Max("mail__date"), first=Min("mail__date"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
@@ -179,8 +195,7 @@ class ChainViewSet(viewsets.ModelViewSet):
         return queryset
 
     def retrieve(self, request, pk):
-        queryset = self.filter_queryset(self.get_queryset())
-        chain = get_object_or_404(queryset, chain=pk)
+        chain = get_object_or_404(self.get_queryset(), chain=pk)
 
         result = {
             **chain,
@@ -190,10 +205,7 @@ class ChainViewSet(viewsets.ModelViewSet):
         return Response(result)
 
     def list(self, request):
-        queryset = self.get_queryset()
-        queryset = self.filter_queryset(queryset)
-
-        page = self.paginate_queryset(queryset)
+        page = self.paginate_queryset(self.get_queryset())
 
         result = []
         if page is not None:
@@ -233,7 +245,6 @@ class ChainViewSet(viewsets.ModelViewSet):
 class FolderViewSet(viewsets.ModelViewSet):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializer
-    permission_classes = (IsAuthenticated, )
 
     @action(detail=True, methods=['POST'], url_path='bulk-move')
     def bulk_move(self, request, *args, **kwargs):
@@ -301,9 +312,7 @@ class FolderViewSet(viewsets.ModelViewSet):
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
     search_fields = ('email', 'name')
-    permission_classes = (IsAuthenticated, )
 
     def update(self, request, *args, **kwargs):
         contact = self.get_object()
@@ -321,3 +330,11 @@ class ContactViewSet(viewsets.ModelViewSet):
         response_data = ContactSerializer(instance=contact).data
 
         return Response(response_data, status=HTTP_200_OK)
+
+
+class TemplateViewSet(viewsets.ModelViewSet):
+    queryset = Template.objects.all()
+    serializer_class = TemplateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user.id)

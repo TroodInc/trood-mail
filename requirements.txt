@@ -22,6 +22,7 @@ py==1.5.3
 PyHamcrest==1.9.0
 pytest==3.4.2
 pytest-django==3.1.2
+pytest-cov==2.6.0
 python-dateutil==2.7.3
 pytz==2018.4
 requests==2.18.4
@@ -31,4 +32,5 @@ uritemplate==3.0.0
 urllib3==1.22
 raven==6.9.0
 
-git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/trood-auth-client.git#egg=trood-auth-client
+git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/trood-auth-client.git@dev#egg=trood-auth-client
+

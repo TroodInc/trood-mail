@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from mail.api.models import Folder, Contact, Mail, \
-    CustomMailbox, Attachment
+    CustomMailbox, Attachment, Template
 
 
 class EmailsListHeaderField(serializers.ListField):
@@ -25,7 +25,13 @@ class FolderSerializer(serializers.ModelSerializer):
         model = Folder
         fields = ("id", "name", "owner",)
 
+        
+class TemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Template
+        fields = ("id", "name", "owner", "alias", "subject", "body")
 
+        
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact

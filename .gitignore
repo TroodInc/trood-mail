@@ -3,7 +3,9 @@
 .idea/*
 .pytest_cache/
 .env
+.coverage
 
 deployment/postgres
 mail/local_settings.py
 media
+htmlcov

@@ -36,8 +36,7 @@ class Maildir:
 
         # To let maildir protocol works,
         # there are should be new,cur dirs in local mail dir path
-        inbox = Mailbox.objects.create(uri='maildir://' + self.box_path)
-        inbox.from_email = "test@mail.com"
+        inbox = Mailbox.objects.create(uri='maildir://' + self.box_path, from_email="test@mail.com")
         self.mailbox = CustomMailbox.objects.create(owner=trood_user.id, inbox=inbox)
 
     def delete(self):

@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django_filters.rest_framework import filters, FilterSet
 
 from mail.api.models import Chain
@@ -13,12 +14,15 @@ class ChainsFilter(FilterSet):
     def filter_folder(self, qs, name, value):
         if value == 'inbox':
             qs = qs.exclude(folders__owner=self.request.user.id)
-            return qs.filter(received__gte=1)
+
+            return qs.annotate(
+                received=Count("mail__pk", filter=Q(mail__outgoing=False))
+            ).filter(received__gte=1)
 
         elif value == 'outbox':
-            filter_obj = {'sent__gt': 0}
 
+            return qs.annotate(
+                sent=Count("mail__pk", filter=Q(mail__outgoing=True))
+            ).filter(sent__gte=1)
         else:
-            filter_obj = {'folders': value}
-
-        return qs.filter(**filter_obj)
+            return qs.filter(folders=value)
