@@ -13,7 +13,7 @@ router.register(r'mails', MailViewSet, base_name="mails")
 router.register(r'folders', FolderViewSet, base_name="folders")
 router.register(r'contacts', ContactViewSet, base_name="contacts")
 router.register(r'chains', ChainViewSet,  base_name="chains")
-router.register(r'chains', TemplateViewSet,  base_name="templates")
+router.register(r'templates', TemplateViewSet,  base_name="templates")
 
 urlpatterns = [
     url(r'^api/v1.0/', include((router.urls, "mail"), namespace='api')),
