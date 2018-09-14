@@ -25,13 +25,13 @@ class FolderSerializer(serializers.ModelSerializer):
         model = Folder
         fields = ("id", "name", "owner",)
 
-
+        
 class TemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
         fields = ("id", "name", "owner", "alias", "subject", "body")
 
-
+        
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact

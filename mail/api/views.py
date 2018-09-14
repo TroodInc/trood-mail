@@ -4,18 +4,21 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError, ParseError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
 from mail.api.filters import ChainsFilter
-from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain, Template
+
+from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
-    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer, TemplateSerializer
+    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer
 from mail.api.utils import mail_fetching_filter
 
 

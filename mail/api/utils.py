@@ -13,7 +13,6 @@ def build_absolute_url(host, path, trailing_slash=True):
         joined_url = joined_url + '/'
     return joined_url
 
-
 def mail_fetching_filter(message):
     if 'date' in message:
         date = parsedate_to_datetime(message['date']).date()
@@ -21,3 +20,4 @@ def mail_fetching_filter(message):
             return False
 
     return True
+  

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 from datetime import datetime
 
 import os
+import raven
 
 from configurations import Configuration
 
@@ -137,6 +138,8 @@ class BaseConfiguration(Configuration):
 
     USE_TZ = True
 
+    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
+
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (),
         'DEFAULT_PERMISSION_CLASSES': (),
@@ -154,7 +157,6 @@ class BaseConfiguration(Configuration):
     SKIP_MAILS_BEFORE = datetime.strptime(
         os.environ.get("SKIP_MAILS_BEFORE", "01-01-2018"), "%d-%m-%Y"
     ).date()
-
 
 class Development(BaseConfiguration):
     DEBUG = True

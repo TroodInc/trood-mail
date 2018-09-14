@@ -1,9 +1,10 @@
-from datetime import datetime
 
+import json
+from datetime import datetime
 from django.conf import settings
+from django_mailbox.models import Mailbox
 from hamcrest import *
-from rest_framework.status import HTTP_404_NOT_FOUND
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 

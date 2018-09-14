@@ -24,6 +24,5 @@ class ChainsFilter(FilterSet):
             return qs.annotate(
                 sent=Count("mail__pk", filter=Q(mail__outgoing=True))
             ).filter(sent__gte=1)
-
         else:
             return qs.filter(folders=value)
