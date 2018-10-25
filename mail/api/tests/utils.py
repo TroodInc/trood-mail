@@ -6,10 +6,9 @@ import uuid
 
 from string import Template
 
-from django_mailbox.models import Mailbox
 from trood_auth_client.authentication import TroodUser
 
-from mail.api.models import CustomMailbox
+from mail.api.models import Mailbox
 import tempfile
 import base64
 
@@ -36,8 +35,7 @@ class Maildir:
 
         # To let maildir protocol works,
         # there are should be new,cur dirs in local mail dir path
-        inbox = Mailbox.objects.create(uri='maildir://' + self.box_path, from_email="test@mail.com")
-        self.mailbox = CustomMailbox.objects.create(owner=trood_user.id, inbox=inbox)
+        self.mailbox = Mailbox.objects.create(owner=trood_user.id, uri='maildir://' + self.box_path, from_email="test@mail.com")
 
     def delete(self):
         # Should be invoked explicitly,

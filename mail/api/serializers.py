@@ -3,12 +3,11 @@ from datetime import datetime
 from urllib.parse import urlparse, urlencode, quote_plus
 
 from django.core.files.storage import default_storage
-from django_mailbox.models import Mailbox
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from mail.api.models import Folder, Contact, Mail, \
-    CustomMailbox, Attachment, Template
+    Mailbox, Attachment, Template
 
 
 class EmailsListHeaderField(serializers.ListField):
@@ -101,10 +100,6 @@ class MailSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
 
-        mailbox = data.get('mailbox', None)
-        if mailbox:
-            data['mailbox'] = CustomMailbox.objects.get(pk=mailbox).inbox.id
-
         attachments = data.pop("attachments", [])
 
         data = super(MailSerializer, self).to_internal_value(data)
@@ -135,7 +130,7 @@ class MailSerializer(serializers.ModelSerializer):
         return super(MailSerializer, self).update(instance, validated_data)
 
 
-class InboxSerializer(serializers.ModelSerializer):
+class TroodMailboxSerializer(serializers.ModelSerializer):
     IMAP = 'imap'
     POP3 = 'pop3'
 
@@ -151,20 +146,12 @@ class InboxSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Mailbox
-        fields = ("name", "active", "email", "password", "imap_host", "imap_port", "last_polling",)
+        fields = (
+            "id", "smtp_host", "smtp_port", "smtp_secure", "owner", "shared",  "name",
+            "active", "password", "email", "imap_host", "imap_port", "last_polling", "custom_query",
+        )
 
-    def to_representation(self, instance):
-        data = super(InboxSerializer, self).to_representation(instance)
-
-        schema = instance._protocol_info.scheme.lower()
-
-        parts = schema.split('+')
-        if len(parts) == 2:
-            data['imap_secure'] = parts[1]
-        else:
-            data['imap_secure'] = None
-
-        return data
+        read_only_fields = ("owner", )
 
     def to_internal_value(self, data):
         imap_secure = data.pop("imap_secure", None)
@@ -178,44 +165,23 @@ class InboxSerializer(serializers.ModelSerializer):
         else:
             imap_secure = ""
 
-        data = super(InboxSerializer, self).to_internal_value(data)
+        data = super(TroodMailboxSerializer, self).to_internal_value(data)
 
-        password = data.pop("password", None)
-        if not password and self.instance:
-            password = self.instance.password
-
-        host = data.pop("location", None)
-        if not host and self.instance:
-            host = self.instance.location
-
-        port = data.pop("port", None)
-        if not port and self.instance:
-            port = self.instance.port
-
-        email = data.get("from_email", None)
-        if not email and self.instance:
-            email = self.instance.from_email
+        password = data.get("password", getattr(self.instance, "password", None))
+        host = data.pop("location", getattr(self.instance, "location", None))
+        port = data.pop("port", getattr(self.instance, "port", None))
+        email = data.get("from_email", getattr(self.instance, "from_email", None))
 
         data['uri'] = "imap{}://{}:{}@{}:{}".format(imap_secure, quote_plus(email), quote_plus(password), host, port)
 
         return data
-
-
-class TroodMailboxSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = CustomMailbox
-        fields = ("id", "smtp_host", "smtp_port", "smtp_secure", "owner", "shared", "email", "password", )
-        read_only_fields = ("owner", )
 
     def validate(self, data):
         validated_data = super().validate(data)
 
         if 'smtp_host' in validated_data \
                 or 'smtp_port' in validated_data \
-                or 'email' in validated_data \
+                or 'from_email' in validated_data \
                 or 'password' in validated_data \
                 or 'smtp_secure' in validated_data:
 
@@ -229,13 +195,8 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
                 server = smtplib.SMTP(host, port)
                 server.starttls()
 
-            email = validated_data.pop('email', None)
-            if not email and self.instance:
-                email = self.instance.inbox.from_email
-
-            password = validated_data.pop('password', None)
-            if not password and self.instance:
-                password = self.instance.inbox.password
+            email = validated_data.get('from_email', getattr(self.instance, 'from_email', ""))
+            password = validated_data.pop('password', getattr(self.instance, 'password', ""))
 
             try:
                 server.login(email, password)
@@ -249,7 +210,15 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super(TroodMailboxSerializer, self).to_representation(instance)
-        data.update(InboxSerializer(instance.inbox).data)
+        schema = instance._protocol_info.scheme.lower()
+
+        parts = schema.split('+')
+        if len(parts) == 2:
+            data['imap_secure'] = parts[1]
+        else:
+            data['imap_secure'] = None
+
+        data['uri'] = instance.uri
 
         return data
 

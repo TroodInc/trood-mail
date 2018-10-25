@@ -1,28 +1,50 @@
-import email
-import gzip
-import logging
-import mimetypes
-import re
-import smtplib
-import uuid
-from email.encoders import encode_quopri, encode_base64
-from email.message import EmailMessage
-from email.mime.base import MIMEBase
-from email import encoders
-from email import utils as email_utils
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import parseaddr, parsedate_to_datetime
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import base64
+import re
 import os
-import six
 import sys
-from django.core.files.base import ContentFile
+import six
+import gzip
+import uuid
+import email
+import base64
+import smtplib
+import logging
+import os.path
+import mimetypes
+
+from email import encoders
+from email.utils import parseaddr
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.message import EmailMessage
+from email import utils as email_utils
+from tempfile import NamedTemporaryFile
+from email.encoders import encode_quopri
+from email.encoders import encode_base64
+from quopri import encode as encode_quopri
+from email.mime.multipart import MIMEMultipart
+from email.utils import parsedate_to_datetime
+from email.message import Message as EmailMessage
+
+from six.moves.urllib.parse import parse_qs, unquote, urlparse
+
+import django
+
+from django.core.files.base import ContentFile, File
 from django.db import models
-from django_mailbox.models import Mailbox
 from django.utils.translation import ugettext_lazy as _
-from django_mailbox import utils
+from django.utils.timezone import now
+from django.utils.encoding import python_2_unicode_compatible
+
+import mail.api.utils as utils
+from mail.api.signals import message_received
+from mail.api.transports import Pop3Transport, ImapTransport, \
+    MaildirTransport, MboxTransport, BabylTransport, MHTransport, \
+    MMDFTransport, GmailImapTransport
+
+logger = logging.getLogger(__name__)
 
 
 logger = logging.getLogger(__name__)
@@ -32,173 +54,20 @@ class ModelApiError(Exception):
     pass
 
 
-class Inbox(Mailbox):
-    class Meta:
-        proxy = True
-
-    def _get_dehydrated_message(self, msg, record):
-        settings = utils.get_settings()
-
-        new = EmailMessage()
-        if msg.is_multipart():
-            for header, value in msg.items():
-                new[header] = value.replace('\n', '').replace('\r', '')
-            for part in msg.get_payload():
-                new.attach(
-                    self._get_dehydrated_message(part, record)
-                )
-        elif (
-            settings['strip_unallowed_mimetypes']
-            and not msg.get_content_type() in settings['allowed_mimetypes']
-        ):
-            for header, value in msg.items():
-                new[header] = value
-            # Delete header, otherwise when attempting to  deserialize the
-            # payload, it will be expecting a body for this.
-            del new['Content-Transfer-Encoding']
-            new[settings['altered_message_header']] = (
-                'Stripped; Content type %s not allowed' % (
-                    msg.get_content_type()
-                )
-            )
-            new.set_payload('')
-        elif (
-            (
-                msg.get_content_type() not in settings['text_stored_mimetypes']
-            ) or
-            ('attachment' in msg.get('Content-Disposition', ''))
-        ):
-            filename = None
-            raw_filename = msg.get_filename()
-            if raw_filename:
-                filename = utils.convert_header_to_unicode(raw_filename)
-            if not filename:
-                extension = mimetypes.guess_extension(msg.get_content_type())
-            else:
-                _, extension = os.path.splitext(filename)
-            if not extension:
-                extension = '.bin'
-
-            attachment = Attachment()
-
-            attachment.document.save(
-                uuid.uuid4().hex + extension,
-                ContentFile(
-                    six.BytesIO(
-                        msg.get_payload(decode=True)
-                    ).getvalue()
-                )
-            )
-            attachment.message = record
-            for key, value in msg.items():
-                attachment[key] = value
-            attachment.save()
-
-            placeholder = EmailMessage()
-            placeholder[
-                settings['attachment_interpolation_header']
-            ] = str(attachment.pk)
-            new = placeholder
-        else:
-            content_charset = msg.get_content_charset()
-            if not content_charset:
-                content_charset = 'ascii'
-            try:
-                # Make sure that the payload can be properly decoded in the
-                # defined charset, if it can't, let's mash some things
-                # inside the payload :-\
-                msg.get_payload(decode=True).decode(content_charset)
-            except LookupError:
-                logger.warning(
-                    "Unknown encoding %s; interpreting as ASCII!", content_charset
-                )
-                msg.set_payload(
-                    msg.get_payload(decode=True).decode('ascii', 'ignore')
-                )
-            except ValueError:
-                logger.warning("Decoding error encountered; interpreting %s as ASCII!", content_charset)
-                msg.set_payload(
-                    msg.get_payload(decode=True).decode('ascii', 'ignore')
-                )
-            new = msg
-        return new
-
-    def _process_message(self, message):
-        msg = Mail()
-        settings = utils.get_settings()
-
-        if settings['store_original_message']:
-            self._process_save_original_message(message, msg)
-        msg.mailbox = self
-
-        if 'subject' in message:
-            msg.subject = (
-                utils.convert_header_to_unicode(message['subject'])[0:255]
-            )
-        if 'message-id' in message:
-            msg.message_id = message['message-id'][0:255].strip()
-        if 'from' in message:
-            msg.from_header = utils.convert_header_to_unicode(message['from'])
-        if 'to' in message:
-            msg.to_header = utils.convert_header_to_unicode(message['to'])
-        elif 'Delivered-To' in message:
-            msg.to_header = utils.convert_header_to_unicode(
-                message['Delivered-To']
-            )
-
-        if 'in-reply-to' in message:
-            try:
-                msg.in_reply_to = Mail.objects.filter(
-                    message_id=message['in-reply-to'].strip()
-                )[0]
-            except IndexError:
-                pass
-
-        msg.save()
-        message = self._get_dehydrated_message(message, msg)
-        try:
-            body = message.as_string()
-        except KeyError as exc:
-            logger.warning("Failed to parse message: %s", exc, )
-            return None
-        msg.set_body(body)
-
-        if 'date' in message:
-            msg.date = parsedate_to_datetime(message['date'])
-
-        msg.save()
-        return msg
-
-
-class CustomMailbox(models.Model):
-    TLS = 'tls'
-    SSL = 'ssl'
-
-    SECURE_TYPES = (
-        (TLS, "TLS"),
-        (SSL, "SSL"),
-    )
-
-    owner = models.IntegerField(_('Owner'), null=True, default=None)
-    inbox = models.OneToOneField(Inbox, related_name="mailer", on_delete=models.CASCADE)
-    smtp_host = models.CharField(max_length=128)
-    smtp_port = models.IntegerField(default=465)
-    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, default=SSL)
-    shared = models.BooleanField(default=False)
-
-
 class Chain(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
 
 
 # @todo: OPTIMIZZZZZEEEE !!!!!!!
+
+
 class Mail(models.Model):
     bcc = models.TextField(null=True)
     draft = models.BooleanField(default=False)
     chain = models.ForeignKey(Chain, null=True, on_delete=models.SET_NULL)
 
     mailbox = models.ForeignKey(
-        'django_mailbox.Mailbox', verbose_name=_(u'Mailbox'), on_delete=models.SET_NULL, null=True
+        'Mailbox', verbose_name=_(u'Mailbox'), on_delete=models.SET_NULL, null=True
     )
 
     subject = models.CharField(_(u'Subject'), max_length=255, blank=True, null=True)
@@ -364,20 +233,22 @@ class Mail(models.Model):
            (https://docs.python.org/2/library/email.message.html)
 
         """
-        if self.eml:
-            if self.eml.name.endswith('.gz'):
-                body = gzip.GzipFile(fileobj=self.eml).read()
+        if not hasattr(self, '_email_object'):
+            if self.eml:
+                if self.eml.name.endswith('.gz'):
+                    body = gzip.GzipFile(fileobj=self.eml).read()
+                else:
+                    self.eml.open()
+                    body = self.eml.file.read()
+                    self.eml.close()
             else:
-                self.eml.open()
-                body = self.eml.file.read()
-                self.eml.close()
-        else:
-            body = self.get_body()
-        if six.PY3:
-            flat = email.message_from_bytes(body)
-        else:
-            flat = email.message_from_string(body)
-        return self._rehydrate(flat)
+                body = self.get_body()
+            if six.PY3:
+                flat = email.message_from_bytes(body)
+            else:
+                flat = email.message_from_string(body)
+            self._email_object = self._rehydrate(flat)
+        return self._email_object
 
     def delete(self, *args, **kwargs):
         """Delete this message and all stored attachments."""
@@ -409,10 +280,10 @@ class Mail(models.Model):
             file.add_header('X-Attachment-Id', meta['id'])
             msg.attach(file)
 
-        if self.mailbox.mailer.smtp_secure == "ssl":
-            server = smtplib.SMTP_SSL(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
+        if self.mailbox.smtp_secure == "ssl":
+            server = smtplib.SMTP_SSL(self.mailbox.smtp_host, self.mailbox.smtp_port)
         else:
-            server = smtplib.SMTP(self.mailbox.mailer.smtp_host, self.mailbox.mailer.smtp_port)
+            server = smtplib.SMTP(self.mailbox.smtp_host, self.mailbox.smtp_port)
             server.starttls()
 
         server.login(self.mailbox.from_email, self.mailbox.password)
@@ -563,3 +434,410 @@ class Template(models.Model):
             "subject": self.subject.format(**data),
             "body": self.body.format(**data),
         }
+
+class ActiveMailboxManager(models.Manager):
+    def get_queryset(self):
+        return super(ActiveMailboxManager, self).get_queryset().filter(
+            active=True,
+        )
+
+class Mailbox(models.Model):
+    TLS = 'tls'
+    SSL = 'ssl'
+
+    SECURE_TYPES = (
+        (TLS, "TLS"),
+        (SSL, "SSL"),
+    )
+
+    name = models.CharField(_(u'Name'), max_length=255,)
+    owner = models.IntegerField(_('Owner'), null=True, default=None)
+
+    smtp_host = models.CharField(max_length=128)
+    smtp_port = models.IntegerField(default=465)
+    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, default=SSL)
+
+    custom_query = models.CharField(max_length=512, null=True)
+
+    shared = models.BooleanField(default=False)
+
+    uri = models.CharField(
+        _(u'URI'), max_length=255, blank=True, null=True, default=None,
+        help_text=(_(
+            "Example: imap+ssl://myusername:mypassword@someserver <br />"
+            "<br />"
+            "Internet transports include 'imap' and 'pop3'; "
+            "common local file transports include 'maildir', 'mbox', "
+            "and less commonly 'babyl', 'mh', and 'mmdf'. <br />"
+            "<br />"
+            "Be sure to urlencode your username and password should they "
+            "contain illegal characters (like @, :, etc)."
+        )),
+    )
+
+    from_email = models.CharField(
+        _(u'From email'), max_length=255, blank=True, null=True, default=None,
+        help_text=(_(
+            "Example: MailBot &lt;mailbot@yourdomain.com&gt;<br />"
+            "'From' header to set for outgoing email.<br />"
+            "<br />"
+            "If you do not use this e-mail inbox for outgoing mail, this "
+            "setting is unnecessary.<br />"
+            "If you send e-mail without setting this, your 'From' header will'"
+            "be set to match the setting `DEFAULT_FROM_EMAIL`."
+        )),
+
+    )
+
+    active = models.BooleanField(
+        _(u'Active'), blank=True, default=True,
+        help_text=(_(
+            "Check this e-mail inbox for new e-mail messages during polling "
+            "cycles.  This checkbox does not have an effect upon whether "
+            "mail is collected here when this mailbox receives mail from a "
+            "pipe, and does not affect whether e-mail messages can be "
+            "dispatched from this mailbox. "
+        )),
+    )
+
+    last_polling = models.DateTimeField(
+        _(u"Last polling"), blank=True, null=True,
+        help_text=(_("The time of last successful polling for messages."
+                     "It is blank for new mailboxes and is not set for "
+                     "mailboxes that only receive messages via a pipe."
+         )),
+    )
+
+    objects = models.Manager()
+    active_mailboxes = ActiveMailboxManager()
+
+    @property
+    def _protocol_info(self):
+        return urlparse(self.uri)
+
+    @property
+    def _query_string(self):
+        return parse_qs(self._protocol_info.query)
+
+    @property
+    def _domain(self):
+        return self._protocol_info.hostname
+
+    @property
+    def port(self):
+        """Returns the port to use for fetching messages."""
+        return self._protocol_info.port
+
+    @property
+    def username(self):
+        """Returns the username to use for fetching messages."""
+        return unquote(self._protocol_info.username)
+
+    @property
+    def password(self):
+        """Returns the password to use for fetching messages."""
+        return unquote(self._protocol_info.password)
+
+    @property
+    def location(self):
+        """Returns the location (domain and path) of messages."""
+        return self._domain if self._domain else '' + self._protocol_info.path
+
+    @property
+    def type(self):
+        """Returns the 'transport' name for this mailbox."""
+        scheme = self._protocol_info.scheme.lower()
+        if '+' in scheme:
+            return scheme.split('+')[0]
+        return scheme
+
+    @property
+    def use_ssl(self):
+        """Returns whether or not this mailbox's connection uses SSL."""
+        return '+ssl' in self._protocol_info.scheme.lower()
+
+    @property
+    def use_tls(self):
+        """Returns whether or not this mailbox's connection uses STARTTLS."""
+        return '+tls' in self._protocol_info.scheme.lower()
+
+    @property
+    def archive(self):
+        """Returns (if specified) the folder to archive messages to."""
+        archive_folder = self._query_string.get('archive', None)
+        if not archive_folder:
+            return None
+        return archive_folder[0]
+
+    @property
+    def folder(self):
+        """Returns (if specified) the folder to fetch mail from."""
+        folder = self._query_string.get('folder', None)
+        if not folder:
+            return None
+        return folder[0]
+
+    def get_connection(self):
+        """Returns the transport instance for this mailbox.
+
+        These will always be instances of
+        `django_mailbox.transports.base.EmailTransport`.
+
+        """
+        if not self.uri:
+            return None
+        elif self.type == 'imap':
+            conn = ImapTransport(
+                self.location,
+                port=self.port if self.port else None,
+                ssl=self.use_ssl,
+                tls=self.use_tls,
+                archive=self.archive,
+                folder=self.folder
+            )
+            conn.connect(self.username, self.password)
+        elif self.type == 'gmail':
+            conn = GmailImapTransport(
+                self.location,
+                port=self.port if self.port else None,
+                ssl=True,
+                archive=self.archive
+            )
+            conn.connect(self.username, self.password)
+        elif self.type == 'pop3':
+            conn = Pop3Transport(
+                self.location,
+                port=self.port if self.port else None,
+                ssl=self.use_ssl
+            )
+            conn.connect(self.username, self.password)
+        elif self.type == 'maildir':
+            conn = MaildirTransport(self.location)
+        elif self.type == 'mbox':
+            conn = MboxTransport(self.location)
+        elif self.type == 'babyl':
+            conn = BabylTransport(self.location)
+        elif self.type == 'mh':
+            conn = MHTransport(self.location)
+        elif self.type == 'mmdf':
+            conn = MMDFTransport(self.location)
+        return conn
+
+    def process_incoming_message(self, message):
+        """Process a message incoming to this mailbox."""
+        msg = self._process_message(message)
+        if msg is None:
+            return None
+        msg.outgoing = False
+        msg.save()
+
+        message_received.send(sender=self, message=msg)
+
+        return msg
+
+    def record_outgoing_message(self, message):
+        """Record an outgoing message associated with this mailbox."""
+        msg = self._process_message(message)
+        if msg is None:
+            return None
+        msg.outgoing = True
+        msg.save()
+        return msg
+
+    def _get_dehydrated_message(self, msg, record):
+        settings = utils.get_settings()
+
+        new = EmailMessage()
+        if msg.is_multipart():
+            for header, value in msg.items():
+                # new[header] = value.replace('\n', '').replace('\r', '')
+                new[header] = value
+            for part in msg.get_payload():
+                new.attach(
+                    self._get_dehydrated_message(part, record)
+                )
+        elif (
+            settings['strip_unallowed_mimetypes']
+            and not msg.get_content_type() in settings['allowed_mimetypes']
+        ):
+            for header, value in msg.items():
+                new[header] = value
+            # Delete header, otherwise when attempting to  deserialize the
+            # payload, it will be expecting a body for this.
+            del new['Content-Transfer-Encoding']
+            new[settings['altered_message_header']] = (
+                'Stripped; Content type %s not allowed' % (
+                    msg.get_content_type()
+                )
+            )
+            new.set_payload('')
+        elif (
+            (
+                msg.get_content_type() not in settings['text_stored_mimetypes']
+            ) or
+            ('attachment' in msg.get('Content-Disposition', ''))
+        ):
+            filename = None
+            raw_filename = msg.get_filename()
+            if raw_filename:
+                filename = utils.convert_header_to_unicode(raw_filename)
+            if not filename:
+                extension = mimetypes.guess_extension(msg.get_content_type())
+            else:
+                _, extension = os.path.splitext(filename)
+            if not extension:
+                extension = '.bin'
+
+            attachment = Attachment()
+
+            attachment.document.save(
+                uuid.uuid4().hex + extension,
+                ContentFile(
+                    six.BytesIO(
+                        msg.get_payload(decode=True)
+                    ).getvalue()
+                )
+            )
+            attachment.message = record
+            for key, value in msg.items():
+                attachment[key] = value
+            attachment.save()
+
+            placeholder = EmailMessage()
+            placeholder[
+                settings['attachment_interpolation_header']
+            ] = str(attachment.pk)
+            new = placeholder
+        else:
+            content_charset = msg.get_content_charset()
+            if not content_charset:
+                content_charset = 'ascii'
+            try:
+                # Make sure that the payload can be properly decoded in the
+                # defined charset, if it can't, let's mash some things
+                # inside the payload :-\
+                msg.get_payload(decode=True).decode(content_charset)
+            except LookupError:
+                logger.warning(
+                    "Unknown encoding %s; interpreting as ASCII!", content_charset
+                )
+                msg.set_payload(
+                    msg.get_payload(decode=True).decode('ascii', 'ignore')
+                )
+            except ValueError:
+                logger.warning("Decoding error encountered; interpreting %s as ASCII!", content_charset)
+                msg.set_payload(
+                    msg.get_payload(decode=True).decode('ascii', 'ignore')
+                )
+            new = msg
+        return new
+
+    def _process_message(self, message):
+        msg = Mail()
+        msg._email_object = message # remove ?
+        settings = utils.get_settings()
+
+        if settings['store_original_message']:
+            self._process_save_original_message(message, msg)
+        msg.mailbox = self
+
+        if 'subject' in message:
+            msg.subject = (
+                utils.convert_header_to_unicode(message['subject'])[0:255]
+            )
+        if 'message-id' in message:
+            msg.message_id = message['message-id'][0:255].strip()
+        if 'from' in message:
+            msg.from_header = utils.convert_header_to_unicode(message['from'])
+        if 'to' in message:
+            msg.to_header = utils.convert_header_to_unicode(message['to'])
+        elif 'Delivered-To' in message:
+            msg.to_header = utils.convert_header_to_unicode(
+                message['Delivered-To']
+            )
+
+        if 'in-reply-to' in message:
+            try:
+                msg.in_reply_to = Message.objects.filter(
+                    message_id=message['in-reply-to'].strip()
+                )[0]
+            except IndexError:
+                pass
+
+        if 'date' in message:
+            msg.date = parsedate_to_datetime(message['date'])
+
+        msg.save()
+        message = self._get_dehydrated_message(message, msg)
+        try:
+            body = message.as_string()
+        except KeyError as exc:
+            logger.warning("Failed to parse message: %s", exc,)
+            return None
+        msg.set_body(body)
+
+        msg.save()
+        return msg
+
+    def _process_save_original_message(self, message, msg):
+        settings = utils.get_settings()
+        if settings['compress_original_message']:
+            with NamedTemporaryFile(suffix=".eml.gz") as fp_tmp:
+                with gzip.GzipFile(fileobj=fp_tmp, mode="w") as fp:
+                    fp.write(message.as_string().encode('utf-8'))
+                msg.eml.save(
+                    "%s.eml.gz" % (uuid.uuid4(), ),
+                    File(fp_tmp),
+                    save=False
+                )
+
+        else:
+            msg.eml.save(
+                '%s.eml' % uuid.uuid4(),
+                ContentFile(message.as_string()),
+                save=False
+            )
+
+    def get_new_mail(self, condition=None):
+        """Connect to this transport and fetch new messages."""
+        connection = self.get_connection()
+        if not connection:
+            return
+        for message in connection.get_message(condition):
+            msg = self.process_incoming_message(message)
+            if not msg is None:
+                yield msg
+        self.last_polling = now()
+        if django.VERSION >= (1, 5):  # Django 1.5 introduces update_fields
+            self.save(update_fields=['last_polling'])
+        else:
+            self.save()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Mailbox')
+        verbose_name_plural = _('Mailboxes')
+
+
+class IncomingMessageManager(models.Manager):
+    def get_queryset(self):
+        return super(IncomingMessageManager, self).get_queryset().filter(
+            outgoing=False,
+        )
+
+
+class OutgoingMessageManager(models.Manager):
+    def get_queryset(self):
+        return super(OutgoingMessageManager, self).get_queryset().filter(
+            outgoing=True,
+        )
+
+
+class UnreadMessageManager(models.Manager):
+    def get_queryset(self):
+        return super(UnreadMessageManager, self).get_queryset().filter(
+            read=None
+        )
+
