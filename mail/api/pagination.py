@@ -1,4 +1,3 @@
-from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination as DefaultPageNumberPagination
 
 

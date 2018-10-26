@@ -61,7 +61,7 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
             "active": True
         }
         response = self.client.post('/api/v1.0/mailboxes/', request_data, format='json')
-        assert response.status_code == HTTP_201_CREATED
+        assert_that(response.status_code, is_(HTTP_201_CREATED))
 
     def test_fetch_single_mailbox(self):
         content = self.maildir.create_mail('eugene', 'dharmagetic@gmail.com')
@@ -76,26 +76,6 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         assert response.data['mails_received'] == 1
         # Added contacts of sender and recipient
         assert response.data['contacts_added'] == 2
-
-    def test_do_not_fetch_mails_older_than_configured(self):
-        content = self.maildir.create_mail('eugene', 'dharmagetic@gmail.com')
-
-        self.maildir.send_mail(content)
-
-        settings.SKIP_MAILS_BEFORE = datetime.strptime("01-01-2019", "%d-%m-%Y").date()
-        response = self.client.post(
-            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
-            format='json'
-        )
-        print(response.data)
-        assert_that(response.data['mails_received'], is_(0))
-
-        settings.SKIP_MAILS_BEFORE = datetime.strptime("01-01-2012", "%d-%m-%Y").date()
-        response = self.client.post(
-            f'/api/v1.0/mailboxes/{self.maildir.mailbox.id}/fetch/',
-            format='json'
-        )
-        assert_that(response.data['mails_received'], is_(1))
 
 
     def test_contact_already_created(self):
@@ -159,12 +139,12 @@ class MailsViewSetTestCase(MailTestMixin, APITestCase):
 
     def test_can_search(self):
         mail_1 = Mail.objects.create(
-            mailbox=self.maildir.mailbox.inbox,
+            mailbox=self.maildir.mailbox,
             subject="sales mail",
         )
 
         mail_2 = Mail.objects.create(
-            mailbox=self.maildir.mailbox.inbox,
+            mailbox=self.maildir.mailbox,
             subject="test mail",
             from_header="boss@mail.com"
         )

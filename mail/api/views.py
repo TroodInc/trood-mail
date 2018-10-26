@@ -1,6 +1,7 @@
 import itertools
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
@@ -11,26 +12,25 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
 from mail.api.filters import ChainsFilter
-from mail.api.models import Folder, Contact, ModelApiError, Mail, CustomMailbox, Chain, Template
+from mail.api.models import Folder, Contact, ModelApiError, Mail, Mailbox, Chain, Template
 from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
-    BulkAssignSerializer, TroodMailboxSerializer, InboxSerializer, TemplateSerializer
-from mail.api.utils import mail_fetching_filter
+    BulkAssignSerializer, TroodMailboxSerializer, TemplateSerializer
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
-    queryset = CustomMailbox.objects.all()
+    queryset = Mailbox.objects.all()
     serializer_class = TroodMailboxSerializer
 
     @action(detail=True, methods=["POST"])
     def fetch(self, request, pk=None):
         mailbox = self.get_object()
 
-        mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
+        mails, new_contacts = self._fetch_mailbox(mailbox)
 
         data = {
-            "mails_received": len(mails),
+            "mails_received": mails,
             "contacts_added": new_contacts
         }
 
@@ -42,11 +42,11 @@ class MailboxViewSet(viewsets.ModelViewSet):
 
         mails_total = contast_total = 0
         failed = []
-        for mailbox in queryset.filter(inbox__active=True):
+        for mailbox in queryset.filter(active=True):
 
             try:
-                mails, new_contacts = self._fetch_mailbox(mailbox.inbox)
-                mails_total += len(mails)
+                mails_count, new_contacts = self._fetch_mailbox(mailbox)
+                mails_total += mails_count
                 contast_total += new_contacts
             except Exception as e:
                 failed.append({
@@ -63,10 +63,16 @@ class MailboxViewSet(viewsets.ModelViewSet):
         return Response(data, status=HTTP_200_OK)
 
     def _fetch_mailbox(self, mailbox):
-        mails = mailbox.get_new_mail(mail_fetching_filter)
+        # @todo: find better way of filter overriding
+        if mailbox.type == 'imap':
+            mails = mailbox.get_new_mail(mailbox.custom_query or settings.DEFAULT_IMAP_QUERY)
+        else:
+            mails = mailbox.get_new_mail()
 
         new_contacts = 0
+        mails_count = 0
         for mail in mails:
+            mails_count +=1
             for address in mail.address:
                 contact, created = Contact.objects.get_or_create(email=address)
                 mail, contact = \
@@ -74,7 +80,7 @@ class MailboxViewSet(viewsets.ModelViewSet):
                 if created:
                     new_contacts += 1
 
-        return mails, new_contacts
+        return mails_count, new_contacts
 
     def _move_mail_to_folder_assigned_to(self, mail, contact):
         try:
@@ -88,23 +94,14 @@ class MailboxViewSet(viewsets.ModelViewSet):
             return mail, contact
 
     def create(self, request, *args, **kwargs):
-        inbox = InboxSerializer(data=request.data)
-        inbox.is_valid(raise_exception=True)
-        inbox.save()
-
         mailbox = TroodMailboxSerializer(data=request.data)
         mailbox.is_valid(raise_exception=True)
-        mailbox.save(owner=self.request.user.id, inbox=inbox.instance)
+        mailbox.save(owner=self.request.user.id)
 
         return Response(mailbox.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-
-        inbox = InboxSerializer(instance.inbox, data=request.data, partial=True)
-        inbox.is_valid(raise_exception=True)
-        inbox.save()
-
         mailbox = TroodMailboxSerializer(instance, data=request.data, partial=True)
         mailbox.is_valid(raise_exception=True)
         mailbox.save()

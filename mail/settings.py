@@ -155,6 +155,7 @@ class BaseConfiguration(Configuration):
         os.environ.get("SKIP_MAILS_BEFORE", "01-01-2018"), "%d-%m-%Y"
     ).date()
 
+    DEFAULT_IMAP_QUERY = os.environ.get('DEFAULT_IMAP_QUERY', "NEW")
 
 class Development(BaseConfiguration):
     DEBUG = True
