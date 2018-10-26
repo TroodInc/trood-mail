@@ -15,7 +15,7 @@ class MailSerializerTestCase(testcases.TestCase):
 
     def test_to_representation(self):
         mail = Mail.objects.create(
-            mailbox=self.maildir.mailbox.inbox,
+            mailbox=self.maildir.mailbox,
             subject='Subject',
             body='Body',
             from_header='from@mail.com',
