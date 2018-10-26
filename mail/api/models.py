@@ -757,7 +757,7 @@ class Mailbox(models.Model):
 
         if 'in-reply-to' in message:
             try:
-                msg.in_reply_to = Message.objects.filter(
+                msg.in_reply_to = Mail.objects.filter(
                     message_id=message['in-reply-to'].strip()
                 )[0]
             except IndexError:
