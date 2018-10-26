@@ -36,7 +36,6 @@ from django.core.files.base import ContentFile, File
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from django.utils.encoding import python_2_unicode_compatible
 
 import mail.api.utils as utils
 from mail.api.signals import message_received

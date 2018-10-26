@@ -1,6 +1,7 @@
 import itertools
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Q, Max, Min, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404
@@ -16,7 +17,6 @@ from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
     BulkAssignSerializer, TroodMailboxSerializer, TemplateSerializer
-from mail.api.utils import mail_fetching_filter
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
@@ -63,7 +63,11 @@ class MailboxViewSet(viewsets.ModelViewSet):
         return Response(data, status=HTTP_200_OK)
 
     def _fetch_mailbox(self, mailbox):
-        mails = mailbox.get_new_mail(mailbox.custom_query)
+        # @todo: find better way of filter overriding
+        if mailbox.type == 'imap':
+            mails = mailbox.get_new_mail(mailbox.custom_query or settings.DEFAULT_IMAP_QUERY)
+        else:
+            mails = mailbox.get_new_mail()
 
         new_contacts = 0
         mails_count = 0
