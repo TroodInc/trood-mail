@@ -17,7 +17,7 @@ def convert_mailboxes(apps, schema_editor):
             smtp_secure=old_mailbox.smtp_secure,
             shared=old_mailbox.shared,
             uri=old_mailbox.inbox.uri,
-            from_email=old_mailbox.inbox.uri,
+            from_email=old_mailbox.inbox.from_email,
             active=old_mailbox.inbox.active,
             last_polling=old_mailbox.inbox.last_polling
         )
