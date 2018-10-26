@@ -10,7 +10,7 @@ def convert_mailboxes(apps, schema_editor):
     for old_mailbox in OldMailbox.objects.all():
         new_mailbox = NewMailbox.objects.create(
             id=old_mailbox.inbox.id,
-            name=old_mailbox.name,
+            name=old_mailbox.inbox.name,
             owner=old_mailbox.owner,
             smtp_port=old_mailbox.smtp_port,
             smtp_host=old_mailbox.smtp_host,
