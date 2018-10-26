@@ -218,8 +218,6 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
         else:
             data['imap_secure'] = None
 
-        data['uri'] = instance.uri
-
         return data
 
     def _get_or_from_instance(self, key, data, instance):

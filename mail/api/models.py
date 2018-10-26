@@ -368,7 +368,7 @@ class Attachment(models.Model):
 
     def __setitem__(self, name, value):
         rehydrated = self._get_rehydrated_headers()
-        rehydrated[name] = re.sub("\r\n", "", value)
+        rehydrated[name] = re.sub("\r\n", "", str(value))
         self._set_dehydrated_headers(rehydrated)
 
     def get_filename(self):
@@ -763,9 +763,6 @@ class Mailbox(models.Model):
             except IndexError:
                 pass
 
-        if 'date' in message:
-            msg.date = parsedate_to_datetime(message['date'])
-
         msg.save()
         message = self._get_dehydrated_message(message, msg)
         try:
@@ -774,6 +771,9 @@ class Mailbox(models.Model):
             logger.warning("Failed to parse message: %s", exc,)
             return None
         msg.set_body(body)
+
+        if 'date' in message:
+            msg.date = parsedate_to_datetime(message['date'])
 
         msg.save()
         return msg
