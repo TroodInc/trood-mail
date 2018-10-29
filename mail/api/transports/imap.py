@@ -56,7 +56,7 @@ class ImapTransport(EmailTransport):
         else:
             self.server.select()
 
-    def _get_all_message_ids(self, condition='ALL'):
+    def _get_all_message_ids(self, condition='UNSEEN'):
         # Fetch all the message uids
         response, message_ids = self.server.uid('search', None, condition)
         message_id_string = message_ids[0].strip()
@@ -129,6 +129,6 @@ class ImapTransport(EmailTransport):
             if self.archive:
                 self.server.uid('copy', uid, self.archive)
 
-            self.server.uid('store', uid, "+FLAGS", "(\\Deleted)")
+            self.server.uid('store', uid, "+FLAGS", "(\\Seen)")
         self.server.expunge()
         return
