@@ -143,7 +143,7 @@ class BaseConfiguration(Configuration):
         'DEFAULT_FILTER_BACKENDS': (
             'django_filters.rest_framework.DjangoFilterBackend',
             'rest_framework.filters.SearchFilter',
-            'rest_framework.filters.OrderingFilter',
+            'mail.api.filters.ForceAdditionalOrderingFilter',
         ),
         'PAGE_SIZE': 10
     }
@@ -178,7 +178,7 @@ class Development(BaseConfiguration):
             'trood_auth_client.filter.TroodABACFilterBackend',
             'django_filters.rest_framework.DjangoFilterBackend',
             'rest_framework.filters.SearchFilter',
-            'rest_framework.filters.OrderingFilter',
+            'mail.api.filters.ForceAdditionalOrderingFilter',
         ),
         'PAGE_SIZE': 10
     }
@@ -217,7 +217,7 @@ class Production(BaseConfiguration):
             'trood_auth_client.filter.TroodABACFilterBackend',
             'django_filters.rest_framework.DjangoFilterBackend',
             'rest_framework.filters.SearchFilter',
-            'rest_framework.filters.OrderingFilter',
+            'mail.api.filters.ForceAdditionalOrderingFilter',
         ),
         'PAGE_SIZE': 10
     }

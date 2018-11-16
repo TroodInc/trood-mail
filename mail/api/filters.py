@@ -1,5 +1,6 @@
 from django.db.models import Count, Q
 from django_filters.rest_framework import filters, FilterSet
+from rest_framework.filters import OrderingFilter
 
 from mail.api.models import Chain
 
@@ -27,3 +28,13 @@ class ChainsFilter(FilterSet):
 
         else:
             return qs.filter(folders=value)
+
+
+class ForceAdditionalOrderingFilter(OrderingFilter):
+    def get_ordering(self, request, queryset, view):
+        ordering = super(ForceAdditionalOrderingFilter, self).get_ordering(request, queryset, view)
+        force = getattr(view, 'ordering_forced', None)
+        if force:
+            ordering += force
+
+        return ordering

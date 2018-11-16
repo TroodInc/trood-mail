@@ -146,6 +146,7 @@ class ChainViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     search_fields = ('mail__subject', 'mail__bcc', 'mail__from_header', 'mail__to_header',)
     ordering_fields = ('last', 'first', 'mail__date')
+    ordering_forced = ('id', )
     filter_class = ChainsFilter
 
     def get_object(self):
@@ -176,8 +177,6 @@ class ChainViewSet(viewsets.ModelViewSet):
 
         queryset = Chain.objects.values("id")
 
-        queryset = self.filter_queryset(queryset)
-
         queryset = queryset.distinct().annotate(
             chain=F("id"),
             received=q_received, sent=q_sent,
@@ -185,6 +184,8 @@ class ChainViewSet(viewsets.ModelViewSet):
             last=Max("mail__date"), first=Min("mail__date"),
             chain_subject=Subquery(q_subj.values("subject")),
         )
+
+        queryset = self.filter_queryset(queryset)
 
         return queryset
 
