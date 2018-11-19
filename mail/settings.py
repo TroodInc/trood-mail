@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
+import glob
+import importlib
 from datetime import datetime
 
 import os
@@ -156,6 +158,12 @@ class BaseConfiguration(Configuration):
     ).date()
 
     DEFAULT_IMAP_QUERY = os.environ.get('DEFAULT_IMAP_QUERY', "NEW")
+
+    @classmethod
+    def post_setup(cls):
+        event_handlers = [module[:-3].replace("/", ".") for module in glob.glob('mail/events/*.py')]
+        for handler in event_handlers:
+            importlib.import_module(handler)
 
 class Development(BaseConfiguration):
     DEBUG = True
