@@ -690,7 +690,7 @@ class Mailbox(models.Model):
             attachment = Attachment()
 
             attachment.document.save(
-                uuid.uuid4().hex + extension,
+                filename or (uuid.uuid4().hex + extension),
                 ContentFile(
                     six.BytesIO(
                         msg.get_payload(decode=True)
