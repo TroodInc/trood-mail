@@ -5,6 +5,8 @@ from urllib.parse import urlparse, urlencode, quote_plus
 from django.core.files.storage import default_storage
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueValidator
+
 
 from mail.api.models import Folder, Contact, Mail, \
     Mailbox, Attachment, Template
@@ -140,7 +142,7 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
     )
 
     imap_host = serializers.CharField(source="location")
-    email = serializers.EmailField(source="from_email")
+    email = serializers.EmailField(source="from_email", validators=[UniqueValidator(Mailbox.objects.all())])
     password = serializers.CharField(write_only=True)
     imap_port = serializers.IntegerField(source="port")
 
@@ -151,7 +153,7 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
             "active", "password", "email", "imap_host", "imap_port", "last_polling", "custom_query",
         )
 
-        read_only_fields = ("owner", )
+        read_only_fields = ("owner", "id")
 
     def to_internal_value(self, data):
         imap_secure = data.pop("imap_secure", None)
