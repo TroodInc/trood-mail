@@ -144,7 +144,8 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
     imap_host = serializers.CharField(source="location")
     email = serializers.EmailField(source="from_email", validators=[UniqueValidator(Mailbox.objects.all())])
     password = serializers.CharField(write_only=True)
-    imap_port = serializers.IntegerField(source="port")
+    imap_port = serializers.IntegerField(source="port", max_value=64535)
+    smtp_port = serializers.IntegerField(max_value=64535)
 
     class Meta:
         model = Mailbox
@@ -191,22 +192,23 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
             host = self._get_or_from_instance('smtp_host', validated_data, self.instance)
             port = self._get_or_from_instance('smtp_port', validated_data, self.instance)
 
-            if secure == 'ssl':
-                server = smtplib.SMTP_SSL(host, port)
-            else:
-                server = smtplib.SMTP(host, port)
-                server.starttls()
-
-            email = validated_data.get('from_email', getattr(self.instance, 'from_email', ""))
-            password = validated_data.pop('password', getattr(self.instance, 'password', ""))
-
             try:
+                if secure == 'ssl':
+                    server = smtplib.SMTP_SSL(host, port, timeout=5)
+                else:
+                    server = smtplib.SMTP(host, port, timeout=5)
+                    server.starttls()
+
+                email = validated_data.get('from_email', getattr(self.instance, 'from_email', ""))
+                password = validated_data.pop('password', getattr(self.instance, 'password', ""))
+
                 server.login(email, password)
-            except smtplib.SMTPAuthenticationError as e:
-                error_message = f'SMTP server login error: invalid email or password '
-                raise ValidationError(error_message)
-            finally:
                 server.quit()
+            except smtplib.SMTPAuthenticationError as e:
+                error_message = f'SMTP server login error: invalid email or password'
+                raise ValidationError(error_message)
+            except Exception as e:
+                raise ValidationError(f'Smtp Connection settings wrong: {e}')
 
         return validated_data
 
