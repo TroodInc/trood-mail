@@ -28,6 +28,8 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import parsedate_to_datetime
 from email.message import Message as EmailMessage
 
+from django.template import Context
+from django.template import Template as DjangoTemplate
 from six.moves.urllib.parse import parse_qs, unquote, urlparse
 
 import django
@@ -429,10 +431,13 @@ class Template(models.Model):
     body = models.TextField(_(u'Body'), blank=True, default="")
 
     def render(self, data):
+        body_template = DjangoTemplate(self.body)
+
         return {
             "subject": self.subject.format(**data),
-            "body": self.body.format(**data),
+            "body": body_template.render(Context(data)),
         }
+
 
 class ActiveMailboxManager(models.Manager):
     def get_queryset(self):
