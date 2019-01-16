@@ -160,6 +160,11 @@ class BaseConfiguration(Configuration):
 
     DEFAULT_IMAP_QUERY = os.environ.get('DEFAULT_IMAP_QUERY', "NEW")
 
+    # @todo: replace with configurable app from TroodLib
+    GLOBAL_CONFIGURABLE = {
+        "PUBLIC_URL": os.environ.get('PUBLIC_URL')
+    }
+
     @classmethod
     def post_setup(cls):
         event_handlers = [module[:-3].replace("/", ".") for module in glob.glob('mail/events/*.py')]
