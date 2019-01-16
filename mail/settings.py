@@ -60,6 +60,7 @@ class BaseConfiguration(Configuration):
             'DIRS': [],
             'APP_DIRS': True,
             'OPTIONS': {
+                'builtins': ['mail.api.templatetags.trood'],
                 'context_processors': [
                     'django.template.context_processors.debug',
                     'django.template.context_processors.request',
