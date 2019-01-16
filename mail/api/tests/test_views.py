@@ -171,7 +171,7 @@ class TemplateTest(APITestCase):
         template = Template.objects.create(
             alias="TEST_TEMPLATE",
             subject="Hello {username}!",
-            body="It as {test_name} test!"
+            body="It as {{ test_name }} test!"
         )
 
         data = template.render({"username": "test_user", "test_name": "template"})
