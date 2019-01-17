@@ -60,6 +60,7 @@ class BaseConfiguration(Configuration):
             'DIRS': [],
             'APP_DIRS': True,
             'OPTIONS': {
+                'builtins': ['mail.api.templatetags.trood'],
                 'context_processors': [
                     'django.template.context_processors.debug',
                     'django.template.context_processors.request',
@@ -158,6 +159,11 @@ class BaseConfiguration(Configuration):
     ).date()
 
     DEFAULT_IMAP_QUERY = os.environ.get('DEFAULT_IMAP_QUERY', "NEW")
+
+    # @todo: replace with configurable app from TroodLib
+    GLOBAL_CONFIGURABLE = {
+        "PUBLIC_URL": os.environ.get('PUBLIC_URL')
+    }
 
     @classmethod
     def post_setup(cls):
