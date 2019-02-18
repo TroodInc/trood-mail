@@ -150,7 +150,7 @@ class BaseConfiguration(Configuration):
     MEDIA_URL = '/media/'
 
     SKIP_MAILS_BEFORE = datetime.strptime(
-        values.Values('', "01-01-2018"), "%d-%m-%Y"
+        values.Values("01-01-2018", environ_prefix=''), "%d-%m-%Y"
     ).date()
 
     DEFAULT_IMAP_QUERY = values.Values("NEW", environ_prefix='')
@@ -194,7 +194,7 @@ class Development(BaseConfiguration):
 
     TROOD_ABAC = {
         'RULES_SOURCE': values.Values('URL', environ_prefix=''),
-        'RULES_PATH': values.Values("{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL), environ_prefix='')
+        'RULES_PATH': values.Values("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
     }
 
     # FIXME: must be setupable
@@ -234,7 +234,7 @@ class Production(BaseConfiguration):
 
     TROOD_ABAC = {
         'RULES_SOURCE': values.Value("URL", environ_prefix=''),
-        'RULES_PATH': values.Value("{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL, environ_prefix=''))
+        'RULES_PATH': values.Value("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
     }
     # FIXME: must be setupable
     RAVEN_CONFIG = {
