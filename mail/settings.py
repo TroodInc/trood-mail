@@ -17,9 +17,13 @@ class BaseConfiguration(Configuration):
     # FIXME: we must have oportunity upload settings from env file
     # DOTENV = os.path.join(BASE_DIR, '.env')
     
+<<<<<<< HEAD
     # SECURITY WARNING: keep the secret key used in production secret!
     
     SECRET_KEY = values.Values(
+=======
+    SECRET_KEY =  values.Value(
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
         '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr', environ_prefix=''
     )
 
@@ -150,6 +154,7 @@ class BaseConfiguration(Configuration):
     MEDIA_URL = '/media/'
 
     SKIP_MAILS_BEFORE = datetime.strptime(
+<<<<<<< HEAD
         values.Values("01-01-2018", environ_prefix=''), "%d-%m-%Y"
     ).date()
 
@@ -158,6 +163,16 @@ class BaseConfiguration(Configuration):
     # @todo: replace with configurable app from TroodLib
     GLOBAL_CONFIGURABLE = {
         "PUBLIC_URL": values.Values('', environ_prefix='')
+=======
+        os.environ.get('SKIP_MAILS_BEFORE', '01-01-2018'), "%d-%m-%Y"
+    ).date()
+
+    DEFAULT_IMAP_QUERY = values.Value("NEW", environ_prefix='')
+
+    # @todo: replace with configurable app from TroodLib
+    GLOBAL_CONFIGURABLE = {
+        "PUBLIC_URL": values.Value('', environ_prefix='')
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
     }
 
     @classmethod
@@ -193,8 +208,13 @@ class Development(BaseConfiguration):
     }
 
     TROOD_ABAC = {
+<<<<<<< HEAD
         'RULES_SOURCE': values.Values('URL', environ_prefix=''),
         'RULES_PATH': values.Values("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
+=======
+        'RULES_SOURCE':values.Value('URL', environ_prefix=''),
+        'RULES_PATH': values.Value("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
     }
 
     # FIXME: must be setupable
@@ -203,8 +223,13 @@ class Development(BaseConfiguration):
         'release': 'dev'
     }
 
+<<<<<<< HEAD
     SERVICE_DOMAIN = values.Values("MAIL", environ_prefix='')
     SERVICE_AUTH_SECRET = values.Values("SERVICE_AUTH_SECRET", environ_prefix='')
+=======
+    SERVICE_DOMAIN = values.Value("MAIL", environ_prefix='')
+    SERVICE_AUTH_SECRET = values.Value("SERVICE_AUTH_SECRET", environ_prefix='')
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
 
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
     DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
@@ -236,13 +261,21 @@ class Production(BaseConfiguration):
         'RULES_SOURCE': values.Value("URL", environ_prefix=''),
         'RULES_PATH': values.Value("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
     # FIXME: must be setupable
     RAVEN_CONFIG = {
         'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
         'release': 'prod'
     }
 
+<<<<<<< HEAD
     SERVICE_DOMAIN = values.Value("MAIL", environ_prefix='')
+=======
+    SERVICE_DOMAIN =  values.Value("MAIL", environ_prefix='')
+>>>>>>> TL-23. Settings edited, requirements edited, README & Makefile added
     SERVICE_AUTH_SECRET = values.Value('', environ_prefix='')
 
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
