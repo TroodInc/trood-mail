@@ -114,7 +114,7 @@ class MailViewSet(viewsets.ModelViewSet):
     serializer_class = MailSerializer
     pagination_class = PageNumberPagination
     search_fields = ('subject', 'bcc', 'from_header', 'to_header', )
-    filter_fields = ('chain', 'outgoing')
+    filter_fields = ('chain', 'outgoing', 'draft')
 
     @action(detail=False, methods=["POST"])
     def from_template(self, request):
@@ -133,6 +133,12 @@ class MailViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, HTTP_201_CREATED)
 
     def perform_create(self, serializer):
+        self.perform_save(serializer)
+
+    def perform_update(self, serializer):
+        self.perform_save(serializer)
+
+    def perform_save(self, serializer):
         mail = serializer.save(outgoing=True)
 
         for address in mail.address:
