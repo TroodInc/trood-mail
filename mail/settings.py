@@ -166,6 +166,7 @@ class BaseConfiguration(Configuration):
         for handler in event_handlers:
             importlib.import_module(handler)
 
+
 class Development(BaseConfiguration):
     DEBUG = True
 
@@ -194,7 +195,7 @@ class Development(BaseConfiguration):
 
     TROOD_ABAC = {
         'RULES_SOURCE':values.Value('URL', environ_prefix=''),
-        'RULES_PATH': values.Value("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
+        'RULES_PATH': values.Value(f"{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
     }
 
     # FIXME: must be setupable
@@ -202,7 +203,6 @@ class Development(BaseConfiguration):
         'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
         'release': 'dev'
     }
-
 
     SERVICE_DOMAIN = values.Value("MAIL", environ_prefix='')
     SERVICE_AUTH_SECRET = values.Value("SERVICE_AUTH_SECRET", environ_prefix='')
@@ -235,7 +235,7 @@ class Production(BaseConfiguration):
 
     TROOD_ABAC = {
         'RULES_SOURCE': values.Value("URL", environ_prefix=''),
-        'RULES_PATH': values.Value("f{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
+        'RULES_PATH': values.Value(f"{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/", environ_prefix='')
     }
 
     # FIXME: must be setupable
@@ -244,8 +244,7 @@ class Production(BaseConfiguration):
         'release': 'prod'
     }
 
-
-    SERVICE_DOMAIN =  values.Value("MAIL", environ_prefix='')
+    SERVICE_DOMAIN = values.Value("MAIL", environ_prefix='')
     SERVICE_AUTH_SECRET = values.Value('', environ_prefix='')
 
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
