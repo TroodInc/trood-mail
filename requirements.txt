@@ -32,6 +32,8 @@ uritemplate==3.0.0
 urllib3==1.22
 raven==6.9.0
 teamcity-messages==1.21
+dj_database_url
+
 
 git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/trood-auth-client.git@dev#egg=trood-auth-client
 git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/custodian_client.git@rc-1.0.1#egg=custodian_client
