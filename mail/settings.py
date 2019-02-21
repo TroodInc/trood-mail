@@ -5,7 +5,7 @@ import dj_database_url
 
 import os
 
-from configurations import Configuration
+from configurations import Configuration, values
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -19,7 +19,9 @@ class BaseConfiguration(Configuration):
     
     # SECURITY WARNING: keep the secret key used in production secret!
     
-    SECRET_KEY = '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr'
+    SECRET_KEY =  values.Value(
+        '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr', environ_prefix=''
+    )
 
     # FIXME: we must setup that list
     ALLOWED_HOSTS = ['*']
@@ -151,11 +153,11 @@ class BaseConfiguration(Configuration):
         os.environ.get('SKIP_MAILS_BEFORE', '01-01-2018'), "%d-%m-%Y"
     ).date()
 
-    DEFAULT_IMAP_QUERY = os.environ.get('DEFAULT_IMAP_QUERY', "NEW")
+    DEFAULT_IMAP_QUERY = values.Value("NEW", environ_prefix='').setup('DEFAULT_IMAP_QUERY')
 
     # @todo: replace with configurable app from TroodLib
     GLOBAL_CONFIGURABLE = {
-        "PUBLIC_URL": os.environ.get('PUBLIC_URL')
+        "PUBLIC_URL": values.Value('', environ_prefix='').setup('PUBLIC_URL')
     }
 
     @classmethod
@@ -171,7 +173,9 @@ class Development(BaseConfiguration):
         'trood_auth_client.middleware.TroodABACMiddleware',
     ]
 
-    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
+    TROOD_AUTH_SERVICE_URL = values.URLValue(
+        'http://authorization.trood:8000/', environ_prefix=''
+        ).setup('TROOD_AUTH_SERVICE_URL')
 
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -191,8 +195,8 @@ class Development(BaseConfiguration):
     }
 
     TROOD_ABAC = {
-        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
-        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
+        'RULES_SOURCE':values.Value('URL', environ_prefix='').setup('RULES_SOURCE'),
+        'RULES_PATH': values.Value(f'{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/', environ_prefix='').setup('RULES_PATH')
     }
 
     # FIXME: must be setupable
@@ -202,8 +206,8 @@ class Development(BaseConfiguration):
     }
 
 
-    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
-    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
+    SERVICE_DOMAIN = values.Value('MAIL', environ_prefix='').setup('SERVICE_DOMAIN')
+    SERVICE_AUTH_SECRET = values.Value('SERVICE_AUTH_SECRET', environ_prefix='').setup('SERVICE_AUTH_SECRET')
 
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
     DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
@@ -212,7 +216,9 @@ class Development(BaseConfiguration):
 class Production(BaseConfiguration):
     DEBUG = False
 
-    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
+    TROOD_AUTH_SERVICE_URL = values.URLValue(
+        'http://authorization.trood:8000/', environ_prefix=''
+        ).setup('TROOD_AUTH_SERVICE_URL')
 
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -232,8 +238,8 @@ class Production(BaseConfiguration):
     }
 
     TROOD_ABAC = {
-        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
-        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
+        'RULES_SOURCE': values.Value("URL", environ_prefix='').setup('RULES_SOURCE'),
+        'RULES_PATH': values.Value(f'{TROOD_AUTH_SERVICE_URL}api/v1.0/abac/', environ_prefix='').setup('RULES_PATH')
     }
 
     # FIXME: must be setupable
@@ -243,8 +249,8 @@ class Production(BaseConfiguration):
     }
 
 
-    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
-    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
+    SERVICE_DOMAIN =  values.Value('MAIL', environ_prefix='').setup('SERVICE_DOMAIN')
+    SERVICE_AUTH_SECRET = values.Value('', environ_prefix='').setup('SERVICE_AUTH_SECRET')
 
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
     DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
