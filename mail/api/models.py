@@ -445,6 +445,7 @@ class ActiveMailboxManager(models.Manager):
             active=True,
         )
 
+
 class Mailbox(models.Model):
     TLS = 'tls'
     SSL = 'ssl'

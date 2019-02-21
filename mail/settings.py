@@ -19,7 +19,7 @@ class BaseConfiguration(Configuration):
     
     # SECURITY WARNING: keep the secret key used in production secret!
     
-    SECRET_KEY =  values.Value(
+    SECRET_KEY = values.Value(
         '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr', environ_prefix=''
     )
 
@@ -166,6 +166,7 @@ class BaseConfiguration(Configuration):
         for handler in event_handlers:
             importlib.import_module(handler)
 
+
 class Development(BaseConfiguration):
     DEBUG = True
 
@@ -216,6 +217,7 @@ class Development(BaseConfiguration):
 class Production(BaseConfiguration):
     DEBUG = False
 
+
     TROOD_AUTH_SERVICE_URL = values.URLValue(
         'http://authorization.trood:8000/', environ_prefix=''
         ).setup('TROOD_AUTH_SERVICE_URL')
@@ -247,7 +249,6 @@ class Production(BaseConfiguration):
         'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
         'release': 'prod'
     }
-
 
     SERVICE_DOMAIN =  values.Value('MAIL', environ_prefix='').setup('SERVICE_DOMAIN')
     SERVICE_AUTH_SECRET = values.Value('', environ_prefix='').setup('SERVICE_AUTH_SECRET')
