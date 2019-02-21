@@ -19,7 +19,7 @@ class BaseConfiguration(Configuration):
     
     # SECURITY WARNING: keep the secret key used in production secret!
     
-    SECRET_KEY =  values.Value(
+    SECRET_KEY = values.Value(
         '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr', environ_prefix=''
     )
 
