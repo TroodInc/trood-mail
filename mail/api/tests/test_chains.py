@@ -4,30 +4,31 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase, APIClient
 
 from mail.api.models import Mail
-from mail.api.tests.utils import trood_user
+from mail.api.tests.utils import trood_user, Maildir
 
 
 class ChainsTestCase(APITestCase):
 
     def setUp(self):
+        self.maildir = Maildir()
         self.client = APIClient()
         self.client.force_authenticate(user=trood_user)
 
-        first = Mail.objects.create(subject="First mail in chain")
+        first = Mail.objects.create(mailbox=self.maildir.mailbox, subject="First mail in chain")
 
         self.chain = first.chain
 
-        Mail.objects.create(subject="Second mail in chain", in_reply_to=first)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Second mail in chain", in_reply_to=first)
 
-        Mail.objects.create(subject="Read mail in chain", in_reply_to=first, is_read=True)
-        Mail.objects.create(subject="Read mail in chain", in_reply_to=first, is_read=True)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Read mail in chain", in_reply_to=first, is_read=True)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Read mail in chain", in_reply_to=first, is_read=True)
 
-        Mail.objects.create(subject="Other mail in chain", chain=self.chain)
-        Mail.objects.create(subject="Other mail in chain", chain=self.chain)
-        Mail.objects.create(subject="Other mail in chain", chain=self.chain)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Other mail in chain", chain=self.chain)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Other mail in chain", chain=self.chain)
+        Mail.objects.create(mailbox=self.maildir.mailbox, subject="Other mail in chain", chain=self.chain)
 
         for a in range(2):
-            out = Mail.objects.create(subject="Outgoing mail {} in chain".format(a), chain=self.chain)
+            out = Mail.objects.create(mailbox=self.maildir.mailbox, subject="Outgoing mail {} in chain".format(a), chain=self.chain)
             out.outgoing = True
             out.save()
 
