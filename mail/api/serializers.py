@@ -81,7 +81,7 @@ class MailSerializer(serializers.ModelSerializer):
         fields = (
             "id", "mailbox", "subject", "body", "to", "bcc", "encoded",  "from_address", "is_read",
             "read_date", "outgoing", "in_reply_to", "mail_replies", "attachments", "created_at",
-            "message_id", "chain"
+            "message_id", "chain", "draft"
         )
         read_only_fields = (
             "id", "encoded",  "from_address", "outgoing", "mail_replies",
@@ -90,10 +90,6 @@ class MailSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super(MailSerializer, self).to_representation(instance)
-        if hasattr(instance.mailbox, 'mailer'):
-            data['mailbox'] = instance.mailbox.mailer.id
-        else:
-            data['mailbox'] = None
 
         body = instance.html or instance.text
         data['body'] = body
