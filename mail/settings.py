@@ -133,6 +133,8 @@ class BaseConfiguration(Configuration):
 
     USE_TZ = True
 
+    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
+
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (),
         'DEFAULT_PERMISSION_CLASSES': (),
@@ -143,6 +145,12 @@ class BaseConfiguration(Configuration):
         ),
         'PAGE_SIZE': 10
     }
+
+    TROOD_ABAC = {
+        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
+        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
+    }
+
 
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/media/'
@@ -158,6 +166,22 @@ class BaseConfiguration(Configuration):
         "PUBLIC_URL": os.environ.get('PUBLIC_URL')
     }
 
+    ENABLE_RAVEN = os.environ.get('ENABLE_RAVEN', "False")
+
+    if ENABLE_RAVEN == "True":
+        RAVEN_CONFIG = {
+            'dsn': os.environ.get('RAVEN_CONFIG_DSN'),
+            'release': os.environ.get('RAVEN_CONFIG_RELEASE')
+        }
+
+
+    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
+    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
+
+    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
+    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
+
+
     @classmethod
     def post_setup(cls):
         event_handlers = [module[:-3].replace("/", ".") for module in glob.glob('mail/events/*.py')]
@@ -171,9 +195,7 @@ class Development(BaseConfiguration):
     MIDDLEWARE = BaseConfiguration.MIDDLEWARE + [
         'trood_auth_client.middleware.TroodABACMiddleware',
     ]
-
-    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
-
+    
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (
             'trood_auth_client.authentication.TroodTokenAuthentication',
@@ -190,33 +212,10 @@ class Development(BaseConfiguration):
         ),
         'PAGE_SIZE': 10
     }
-
-    TROOD_ABAC = {
-        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
-        'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
-    }
-
-    # FIXME: must be setupable
-    RAVEN_CONFIG = {
-        'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
-        'release': 'dev'
-    }
-
-
-    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
-    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
-
-    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
-    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
-
 
 class Production(BaseConfiguration):
     DEBUG = False
 
-
-    TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
-
-
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': (
             'trood_auth_client.authentication.TroodTokenAuthentication',
@@ -233,24 +232,6 @@ class Production(BaseConfiguration):
         ),
         'PAGE_SIZE': 10
     }
-
-    TROOD_ABAC = {
-        'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
-        'RULES_PATH':  os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
-    }
-
-    # FIXME: must be setupable
-    RAVEN_CONFIG = {
-        'dsn': 'http://30386ed35c72421c92d3fc14a0e8a1f3:ef714492b6574c83b5e96a70a129b34a@sentry.dev.trood.ru/3',
-        'release': 'prod'
-    }
-
-    SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
-    SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
-
-    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
-    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
-
 
 class Test(BaseConfiguration):
     DEBUG = True
