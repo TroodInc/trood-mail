@@ -6,6 +6,10 @@ services:
       context: ../
       dockerfile: deployment/Dockerfile
     container_name: mail
+    environment:
+      RAVEN_CONFIG_DSN: "YOUR_DSN_HERE"
+      RAVEN_CONFIG_RELEASE: "dev"
+      ENABLE_RAVEN: "False"
     networks:
       - test-network
 
