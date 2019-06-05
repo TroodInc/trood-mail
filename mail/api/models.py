@@ -295,7 +295,7 @@ class Mail(models.Model):
         self.save()
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self.pk is None and self.outgoing:
+        if self.outgoing:
             self.from_header = self.mailbox.from_email
             self.message_id = email_utils.make_msgid()
 
@@ -444,6 +444,7 @@ class ActiveMailboxManager(models.Manager):
         return super(ActiveMailboxManager, self).get_queryset().filter(
             active=True,
         )
+
 
 class Mailbox(models.Model):
     TLS = 'tls'
