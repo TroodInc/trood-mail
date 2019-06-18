@@ -191,47 +191,68 @@ class BaseConfiguration(Configuration):
 
 class Development(BaseConfiguration):
     DEBUG = True
-
-    MIDDLEWARE = BaseConfiguration.MIDDLEWARE + [
-        'trood_auth_client.middleware.TroodABACMiddleware',
-    ]
     
-    REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'trood_auth_client.authentication.TroodTokenAuthentication',
-        ),
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-            'trood_auth_client.permissions.TroodABACPermission',
-        ),
-        'DEFAULT_FILTER_BACKENDS': (
-            'trood_auth_client.filter.TroodABACFilterBackend',
-            'django_filters.rest_framework.DjangoFilterBackend',
-            'rest_framework.filters.SearchFilter',
-            'mail.api.filters.ForceAdditionalOrderingFilter',
-        ),
-        'PAGE_SIZE': 10
-    }
+    if os.environ.get("AUTH_TYPE") == "TROOD":  
+        MIDDLEWARE = BaseConfiguration.MIDDLEWARE + [
+            'trood_auth_client.middleware.TroodABACMiddleware',
+        ]
+    
+        REST_FRAMEWORK = {
+            'DEFAULT_AUTHENTICATION_CLASSES': (
+                'trood_auth_client.authentication.TroodTokenAuthentication',
+            ),
+            'DEFAULT_PERMISSION_CLASSES': (
+                'rest_framework.permissions.IsAuthenticated',
+                'trood_auth_client.permissions.TroodABACPermission',
+            ),
+            'DEFAULT_FILTER_BACKENDS': (
+                'trood_auth_client.filter.TroodABACFilterBackend',
+                'django_filters.rest_framework.DjangoFilterBackend',
+                'rest_framework.filters.SearchFilter',
+                'mail.api.filters.ForceAdditionalOrderingFilter',
+            ),
+            'PAGE_SIZE': 10
+        }
+    elif os.environ.get("AUTH_TYPE") == "None":
+        MIDDLEWARE = BaseConfiguration.MIDDLEWARE
+        
+        REST_FRAMEWORK = {
+            'DEFAULT_FILTER_BACKENDS': (
+                'django_filters.rest_framework.DjangoFilterBackend',
+                'rest_framework.filters.SearchFilter',
+                'mail.api.filters.ForceAdditionalOrderingFilter',
+            ),
+            'PAGE_SIZE': 10
+        }
 
 class Production(BaseConfiguration):
     DEBUG = False
-
-    REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'trood_auth_client.authentication.TroodTokenAuthentication',
-        ),
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-            'trood_auth_client.permissions.TroodABACPermission',
-        ),
-        'DEFAULT_FILTER_BACKENDS': (
-            'trood_auth_client.filter.TroodABACFilterBackend',
-            'django_filters.rest_framework.DjangoFilterBackend',
-            'rest_framework.filters.SearchFilter',
-            'mail.api.filters.ForceAdditionalOrderingFilter',
-        ),
-        'PAGE_SIZE': 10
-    }
+    if os.environ.get("AUTH_TYPE") == "TROOD":
+        REST_FRAMEWORK = {
+            'DEFAULT_AUTHENTICATION_CLASSES': (
+                'trood_auth_client.authentication.TroodTokenAuthentication',
+            ),
+            'DEFAULT_PERMISSION_CLASSES': (
+                'rest_framework.permissions.IsAuthenticated',
+                'trood_auth_client.permissions.TroodABACPermission',
+            ),
+            'DEFAULT_FILTER_BACKENDS': (
+                'trood_auth_client.filter.TroodABACFilterBackend',
+                'django_filters.rest_framework.DjangoFilterBackend',
+                'rest_framework.filters.SearchFilter',
+                'mail.api.filters.ForceAdditionalOrderingFilter',
+            ),
+            'PAGE_SIZE': 10
+        }
+    elif os.environ.get("AUTH_TYPE") == "None":
+        REST_FRAMEWORK = {
+            'DEFAULT_FILTER_BACKENDS': (
+                'django_filters.rest_framework.DjangoFilterBackend',
+                'rest_framework.filters.SearchFilter',
+                'mail.api.filters.ForceAdditionalOrderingFilter',
+            ),
+            'PAGE_SIZE': 10
+        }
 
 class Test(BaseConfiguration):
     DEBUG = True
