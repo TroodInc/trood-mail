@@ -8,4 +8,4 @@
 deployment/postgres
 mail/local_settings.py
 media
-htmlcov
+htmlcovdocs/_build

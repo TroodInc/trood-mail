@@ -1,0 +1,123 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Trood search",
+    "description": "This is fulltext search server. You can find out more about trood-search [http://docs.search.trood.com](http://docs.search.trood.com).",
+    "termsOfService": "http://docs.search.trood.com/terms",
+    "contact": {
+      "email": "info@trood.com"
+    },
+    "version": "0.1.1"
+  },
+  "servers": [
+    {
+      "url": "https://search.trood.com/"
+    },
+    {
+      "url": "http://search.trood.com/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "search",
+      "description": "Trood search"
+    },
+    {
+      "name": "ping",
+      "description": "Service health check"
+    }
+  ],
+  "paths": {
+    "/ping": {
+      "get": {
+        "tags": [
+          "ping"
+        ],
+        "summary": "Health check",
+        "description": "This end-point allow to test that service is up.",
+        "responses": {
+          "200": {
+            "description": "Successful operation. Return \"pong\" text",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pong"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Search docs",
+        "description": "Returns found docs",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "query",
+            "description": "Search index",
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          },
+          {
+            "name": "match",
+            "in": "query",
+            "description": "Search pattern",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Result": {
+        "type": "object",
+        "xml": {
+          "name": "Result"
+        }
+      },
+      "Pong": {
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "header"
+      }
+    }
+  }
+}
