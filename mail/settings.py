@@ -16,9 +16,9 @@ class BaseConfiguration(Configuration):
     # Django environ
     # FIXME: we must have oportunity upload settings from env file
     # DOTENV = os.path.join(BASE_DIR, '.env')
-    
+
     # SECURITY WARNING: keep the secret key used in production secret!
-    
+
     SECRET_KEY = '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr'
 
     # FIXME: we must setup that list
@@ -151,6 +151,7 @@ class BaseConfiguration(Configuration):
 
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/media/'
+    STATIC_URL = 'static'
 
     SKIP_MAILS_BEFORE = datetime.strptime(
         os.environ.get('SKIP_MAILS_BEFORE', '01-01-2018'), "%d-%m-%Y"

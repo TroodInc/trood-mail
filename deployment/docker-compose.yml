@@ -7,9 +7,16 @@ services:
       dockerfile: deployment/Dockerfile
     container_name: mail
     environment:
-      RAVEN_CONFIG_DSN: "YOUR_DSN_HERE"
-      RAVEN_CONFIG_RELEASE: "dev"
-      ENABLE_RAVEN: "False"
+      DJANGO_CONFIGURATION: "Development"
+      TROOD_AUTH_SERVICE_URL: "https://tcp.trood.com/auth/"
+      SKIP_MAILS_BEFORE: "09-07-2019"
+      DEFAULT_IMAP_QUERY: "UNSEEN SINCE 09-Jul-2019"
+      SERVICE_DOMAIN: "MAIL"
+      SERVICE_AUTH_SECRET: "71f47ab21e8c2b1153bd6b32c5249024bcaa9b1287d138c5c5fc8acedb9cbb6c2a02329dd15cbdbd664ab6d08eb7da3987e7d04da42cb28656212dd82d4d9db9"
+      SENTRY_ENABLED: "False"
+      DATABASE_URL: "postgres://mail:mail@mail_postgres:5432/mail"
+    ports:
+      - "8000:8000"
     networks:
       - test-network
 

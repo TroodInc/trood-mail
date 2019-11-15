@@ -155,6 +155,12 @@ class ChainViewSet(viewsets.ModelViewSet):
     ordering_forced = ('id', )
     filter_class = ChainsFilter
 
+    def get_serializer_class(self):
+        pass
+
+    def get_serializer(self):
+        pass
+
     def get_object(self):
         queryset = Chain.objects.all()
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
