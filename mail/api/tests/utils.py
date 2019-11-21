@@ -6,7 +6,7 @@ import uuid
 
 from string import Template
 
-from trood_auth_client.authentication import TroodUser
+from trood.contrib.django.auth.authentication import TroodUser
 
 from mail.api.models import Mailbox
 import tempfile
