@@ -136,8 +136,6 @@ class BaseConfiguration(Configuration):
     TROOD_AUTH_SERVICE_URL = os.environ.get('TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/')
 
     REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (),
-        'DEFAULT_PERMISSION_CLASSES': (),
         'DEFAULT_FILTER_BACKENDS': (
             'django_filters.rest_framework.DjangoFilterBackend',
             'rest_framework.filters.SearchFilter',
@@ -150,7 +148,6 @@ class BaseConfiguration(Configuration):
         'RULES_SOURCE': os.environ.get("ABAC_RULES_SOURCE", "URL"),
         'RULES_PATH': os.environ.get("ABAC_RULES_PATH", "{}api/v1.0/abac/".format(TROOD_AUTH_SERVICE_URL))
     }
-
 
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     MEDIA_URL = '/media/'
@@ -181,6 +178,36 @@ class BaseConfiguration(Configuration):
     DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
     DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
 
+    AUTH_TYPE = os.environ.get('AUTHENTICATION_TYPE')
+
+    if AUTH_TYPE == 'TROOD':
+        TROOD_AUTH_SERVICE_URL = os.environ.get(
+            'TROOD_AUTH_SERVICE_URL', 'http://authorization.trood:8000/'
+        )
+        SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "FILESERVICE")
+        SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
+
+        REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+            'trood.contrib.django.auth.authentication.TroodTokenAuthentication',
+        )
+
+        REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = (
+            'rest_framework.permissions.IsAuthenticated',
+            'trood.contrib.django.auth.permissions.TroodABACPermission',
+        )
+
+        REST_FRAMEWORK['DEFAULT_FILTER_BACKENDS'] += (
+            'trood.contrib.django.auth.filter.TroodABACFilterBackend',
+        )
+
+        MIDDLEWARE = MIDDLEWARE + [
+            'trood.contrib.django.auth.middleware.TroodABACMiddleware',
+        ]
+
+    elif AUTH_TYPE == 'NONE':
+        REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = ()
+        REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = ()
+
 
     @classmethod
     def post_setup(cls):
@@ -192,46 +219,8 @@ class BaseConfiguration(Configuration):
 class Development(BaseConfiguration):
     DEBUG = True
 
-    MIDDLEWARE = BaseConfiguration.MIDDLEWARE + [
-        'trood_auth_client.middleware.TroodABACMiddleware',
-    ]
-    
-    REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'trood_auth_client.authentication.TroodTokenAuthentication',
-        ),
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-            'trood_auth_client.permissions.TroodABACPermission',
-        ),
-        'DEFAULT_FILTER_BACKENDS': (
-            'trood_auth_client.filter.TroodABACFilterBackend',
-            'django_filters.rest_framework.DjangoFilterBackend',
-            'rest_framework.filters.SearchFilter',
-            'mail.api.filters.ForceAdditionalOrderingFilter',
-        ),
-        'PAGE_SIZE': 10
-    }
-
 class Production(BaseConfiguration):
     DEBUG = False
-
-    REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'trood_auth_client.authentication.TroodTokenAuthentication',
-        ),
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-            'trood_auth_client.permissions.TroodABACPermission',
-        ),
-        'DEFAULT_FILTER_BACKENDS': (
-            'trood_auth_client.filter.TroodABACFilterBackend',
-            'django_filters.rest_framework.DjangoFilterBackend',
-            'rest_framework.filters.SearchFilter',
-            'mail.api.filters.ForceAdditionalOrderingFilter',
-        ),
-        'PAGE_SIZE': 10
-    }
 
 class Test(BaseConfiguration):
     DEBUG = True

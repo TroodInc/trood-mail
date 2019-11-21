@@ -283,9 +283,11 @@ class Mail(models.Model):
 
         if self.mailbox.smtp_secure == "ssl":
             server = smtplib.SMTP_SSL(self.mailbox.smtp_host, self.mailbox.smtp_port)
-        else:
+        elif self.mailbox.smtp_secure == "tls":
             server = smtplib.SMTP(self.mailbox.smtp_host, self.mailbox.smtp_port)
             server.starttls()
+        else:
+            server = smtplib.SMTP(self.mailbox.smtp_host, self.mailbox.smtp_port)
 
         server.login(self.mailbox.from_email, self.mailbox.password)
         server.send_message(msg=msg)
@@ -460,7 +462,7 @@ class Mailbox(models.Model):
 
     smtp_host = models.CharField(max_length=128)
     smtp_port = models.IntegerField(default=465)
-    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, default=SSL)
+    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, null=True, default=SSL)
 
     custom_query = models.CharField(max_length=512, null=True)
 
