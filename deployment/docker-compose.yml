@@ -8,11 +8,11 @@ services:
     container_name: mail
     environment:
       DJANGO_CONFIGURATION: "Development"
-      TROOD_AUTH_SERVICE_URL: "https://tcp.trood.com/auth/"
+      TROOD_AUTH_SERVICE_URL: "https://auth.trood.com/"
       SKIP_MAILS_BEFORE: "09-07-2019"
       DEFAULT_IMAP_QUERY: "UNSEEN SINCE 09-Jul-2019"
       SERVICE_DOMAIN: "MAIL"
-      SERVICE_AUTH_SECRET: "71f47ab21e8c2b1153bd6b32c5249024bcaa9b1287d138c5c5fc8acedb9cbb6c2a02329dd15cbdbd664ab6d08eb7da3987e7d04da42cb28656212dd82d4d9db9"
+      SERVICE_AUTH_SECRET: "SERVICE_AUTH_SECRET"
       SENTRY_ENABLED: "False"
       DATABASE_URL: "postgres://mail:mail@mail_postgres:5432/mail"
     ports:
