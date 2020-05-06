@@ -1,4 +1,5 @@
 import itertools
+import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
@@ -17,6 +18,8 @@ from mail.api.pagination import PageNumberPagination
 from mail.api.serializers import MailSerializer, \
     FolderSerializer, ContactSerializer, MoveMailsToFolderSerializer, \
     BulkAssignSerializer, TroodMailboxSerializer, TemplateSerializer
+
+logger = logging.getLogger("mail_info")
 
 
 class MailboxViewSet(viewsets.ModelViewSet):
@@ -129,6 +132,8 @@ class MailViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         self.perform_create(serializer)
+
+        logger.info("Message of following subject was sended: {}".format(template.subject))
 
         return Response(serializer.data, HTTP_201_CREATED)
 
