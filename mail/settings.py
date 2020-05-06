@@ -117,6 +117,11 @@ class BaseConfiguration(Configuration):
                 'handlers': ['console'],
                 'propagate': False,
             },
+            'mail_info': {
+                'level': 'INFO',
+                'handlers': ['console'],
+                'propagate': False,
+            }
         },
     }
 
