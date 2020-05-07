@@ -191,9 +191,11 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
             try:
                 if secure == 'ssl':
                     server = smtplib.SMTP_SSL(host, port, timeout=5)
-                else:
+                elif secure == 'tls':
                     server = smtplib.SMTP(host, port, timeout=5)
                     server.starttls()
+                else:
+                    server = smtplib.SMTP(host, port, timeout=5)
 
                 email = validated_data.get('from_email', getattr(self.instance, 'from_email', ""))
                 password = validated_data.pop('password', getattr(self.instance, 'password', ""))
