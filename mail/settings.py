@@ -197,7 +197,6 @@ class BaseConfiguration(Configuration):
         )
 
         REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = (
-            'rest_framework.permissions.IsAuthenticated',
             'trood.contrib.django.auth.permissions.TroodABACPermission',
         )
 
