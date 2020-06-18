@@ -34,4 +34,4 @@ raven==6.9.0
 teamcity-messages==1.28
 dj_database_url
 
-git+https://07de0218088728b42ee60f155c71990f1dc6a717:x-oauth-basic@github.com/Q-CIS-DEV/trood-sdk.git#egg=trood
+trood==2020.6.dev37
