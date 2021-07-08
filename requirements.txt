@@ -25,7 +25,6 @@ pytest-django==3.1.2
 pytest-cov==2.6.0
 python-dateutil==2.7.3
 pytz==2018.4
-requests
 six==1.11.0
 text-unidecode==1.2
 uritemplate==3.0.0
@@ -34,4 +33,4 @@ raven==6.9.0
 teamcity-messages==1.28
 dj_database_url
 
-trood==2020.6.dev38
+trood==1.0.0
