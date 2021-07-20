@@ -1,3 +1,5 @@
+from rest_framework.test import APITestCase, APIClient
+from rest_framework.reverse import reverse
 from django.test import testcases
 from hamcrest import *
 
@@ -31,3 +33,33 @@ class MailSerializerTestCase(testcases.TestCase):
             "from_address": ["from@mail.com"],
             "to": ["to@mail.com"]
         }))
+
+
+class MailSerializerApiTestCase(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.template = self.client.post(
+            reverse("mail:templates-list"),
+            data={
+                "alias": "TEST_TEMPLATE",
+                "name": "Test template name",
+                "subject": "This is test subject",
+                "body": "This is test body"
+            },
+            format="json"
+        )
+        self.template_alias = self.template.json()['alias']
+
+    def test_serialization(self):
+
+        response = self.client.post(
+            reverse("mail:mails-from-template"),
+            data={
+                "to": "test@example.com",
+                "template": self.template_alias,
+                "data": {}
+            },
+            format='json'
+        )
+
+        assert response.status_code == 400
