@@ -1,4 +1,5 @@
 attrs==18.1.0
+autoapi==2.0.1
 certifi==2018.4.16
 chardet==3.0.4
 coreapi==2.3.3
@@ -25,7 +26,10 @@ pytest-django==3.1.2
 pytest-cov==2.6.0
 python-dateutil==2.7.3
 pytz==2018.4
+requests
 six==1.11.0
+Sphinx==4.1.1
+sphinxcontrib-openapi==0.7.0
 text-unidecode==1.2
 uritemplate==3.0.0
 urllib3==1.22
@@ -33,4 +37,4 @@ raven==6.9.0
 teamcity-messages==1.28
 dj_database_url
 
-trood==1.0.0
+trood==2020.6.dev38

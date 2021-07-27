@@ -7,18 +7,21 @@ import os
 
 from configurations import Configuration, values
 
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def rel(*x):
+    return os.path.normpath(os.path.join(BASE_DIR, *x))
 
 
 class BaseConfiguration(Configuration):
     # Django environ
     # FIXME: we must have oportunity upload settings from env file
     # DOTENV = os.path.join(BASE_DIR, '.env')
-    
+
     # SECURITY WARNING: keep the secret key used in production secret!
-    
+
     SECRET_KEY = '3@a)-cbt514^!a%qiotx$su4%29p@dxfrd-qb(oouzbp^@!+gr'
 
     # FIXME: we must setup that list
@@ -54,7 +57,7 @@ class BaseConfiguration(Configuration):
     TEMPLATES = [
         {
             'BACKEND': 'django.template.backends.django.DjangoTemplates',
-            'DIRS': [],
+            'DIRS': ['mail/templates'],
             'APP_DIRS': True,
             'OPTIONS': {
                 'builtins': ['mail.api.templatetags.trood'],
@@ -212,6 +215,8 @@ class BaseConfiguration(Configuration):
         REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = ()
         REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = ()
 
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.environ.get('MAIL_SERVICE_STATIC_ROOT', rel('static'))
 
     @classmethod
     def post_setup(cls):
@@ -223,8 +228,10 @@ class BaseConfiguration(Configuration):
 class Development(BaseConfiguration):
     DEBUG = True
 
+
 class Production(BaseConfiguration):
     DEBUG = False
+
 
 class Test(BaseConfiguration):
     DEBUG = True
