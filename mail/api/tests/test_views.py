@@ -88,7 +88,6 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
         }
 
         response = self.client.post('/api/v1.0/mailboxes/', request_data, format='json')
-        # print(response.json())
         assert_that(response.status_code, is_(HTTP_400_BAD_REQUEST))
         assert_that(response.json()['non_field_errors'], is_(["SMTP server login error: invalid email or password"]))
 
