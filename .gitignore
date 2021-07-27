@@ -11,3 +11,4 @@ media
 htmlcovdocs/_build
 
 docs/_build
+htmlcov/
