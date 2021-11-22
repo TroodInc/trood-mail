@@ -5,6 +5,7 @@ from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 
 from mail.api.views import MailboxViewSet, MailViewSet, FolderViewSet, ContactViewSet, ChainViewSet, TemplateViewSet
+from trood.contrib.django.apps.meta.views import TroodMetaView
 
 router = routers.DefaultRouter()
 
@@ -16,6 +17,7 @@ router.register(r'chains', ChainViewSet,  base_name="chains")
 router.register(r'templates', TemplateViewSet,  base_name="templates")
 
 urlpatterns = [
+    url(r'meta', TroodMetaView.as_view(), name='meta'),
     url(r'^api/v1.0/', include((router.urls, "mail"), namespace='api')),
 ]
 if settings.DEBUG:

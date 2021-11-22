@@ -33,4 +33,4 @@ raven==6.9.0
 teamcity-messages==1.28
 dj_database_url
 
-trood==1.0.0
+trood==2021.11.dev66
