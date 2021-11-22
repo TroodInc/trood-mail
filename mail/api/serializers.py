@@ -15,8 +15,6 @@ from mail.api.models import Folder, Contact, Mail, \
 class EmailsListHeaderField(serializers.ListField):
 
     def to_internal_value(self, data):
-        if not isinstance(data, list):
-            raise serializers.ValidationError(detail="Field 'to' should be a list of emails.")
         return ",".join(data)
 
     def to_representation(self, data):
@@ -128,6 +126,7 @@ class MailSerializer(serializers.ModelSerializer):
         validated_data.pop("attachments", [])
 
         return super(MailSerializer, self).update(instance, validated_data)
+
 
 class TroodMailboxSerializer(serializers.ModelSerializer):
     IMAP = 'imap'

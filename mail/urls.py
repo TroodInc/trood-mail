@@ -1,6 +1,8 @@
 # encoding: utf-8
 from django.conf import settings
 from django.conf.urls import url, include
+from django.conf.urls.static import static
+from django.views.generic import TemplateView
 from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 
@@ -22,3 +24,7 @@ urlpatterns = [
 ]
 if settings.DEBUG:
     urlpatterns.append(url(r'^docs/', include_docs_urls(title='Trood Email')))
+
+    urlpatterns += [
+        url('swagger/', TemplateView.as_view(template_name='swagger_ui.html'), name='swagger-ui'),
+    ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

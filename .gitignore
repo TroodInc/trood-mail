@@ -4,11 +4,10 @@
 .pytest_cache/
 .env
 .coverage
-
+*htmlcov/
 deployment/postgres
 mail/local_settings.py
 media
 htmlcovdocs/_build
 
 docs/_build
-htmlcov/

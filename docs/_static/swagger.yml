@@ -1,0 +1,696 @@
+swagger: "2.0"
+info:
+  version: "dev"
+  title: "Trood Mail"
+paths:
+  /api/v1.0/mailboxes/:
+    get:
+      tags:
+      - "Mailboxes"
+      summary: "List mailboxes"
+      description: ""
+      operationId: "listMailbox"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "List of all created mailboxes"
+          schema:
+            $ref: "#/definitions/Mailbox"
+    post:
+      tags:
+      - "Mailboxes"
+      summary: "Create mailbox"
+      description: ""
+      operationId: "createMailbox"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Mailbox that will be used to send emails"
+        required: true
+        schema:
+          $ref: "#/definitions/Mailbox"
+      responses:
+        "201":
+          description: "Created mailbox"
+          schema:
+            $ref: "#/definitions/Mailbox"
+
+  /api/v1.0/mailboxes/{id}:
+    get:
+      tags:
+      - "Mailboxes"
+      summary: "Retrieve mailbox"
+      description: ""
+      operationId: "retrieveMailbox"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mailbox to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Mailbox object"
+          schema:
+            $ref: "#/definitions/Mailbox"
+    patch:
+      tags:
+      - "Mailboxes"
+      summary: "Update mailbox"
+      description: ""
+      operationId: "updateMailbox"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mailbox to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Updated mailbox"
+          schema:
+            $ref: "#/definitions/Mailbox"
+        "404":
+          description: "Mailbox not found"
+    delete:
+      tags:
+      - "Mailboxes"
+      summary: "Delete mailbox"
+      description: ""
+      operationId: "deleteMailbox"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mailbox to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "204":
+          description: ""
+
+  /api/v1.0/mails/:
+    get:
+      tags:
+      - "Mail"
+      summary: "List mail"
+      description: ""
+      operationId: "listMail"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "List of all created mailboxes"
+          schema:
+            $ref: "#/definitions/Mail"
+    post:
+      tags:
+      - "Mail"
+      summary: "Create mail"
+      description: ""
+      operationId: "addMail"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Mail object"
+        required: true
+        schema:
+          $ref: "#/definitions/Mail"
+      responses:
+        "201":
+          description: "Created mail"
+          schema:
+            $ref: "#/definitions/Mail"
+
+  /api/v1.0/mails/{id}:
+    get:
+      tags:
+      - "Mail"
+      summary: "Retrieve mail"
+      description: ""
+      operationId: "retrieveMail"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mail to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Mail object"
+          schema:
+            $ref: "#/definitions/Mail"
+    patch:
+      tags:
+      - "Mail"
+      summary: "Update mail"
+      description: ""
+      operationId: "updateMail"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mail to update"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Updated mail object"
+          schema:
+            $ref: "#/definitions/Mail"
+    delete:
+      tags:
+      - "Mail"
+      summary: "Delete mail"
+      description: ""
+      operationId: "deleteMail"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of mail to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "204":
+          description: ""
+
+  /api/v1.0/folders/:
+    get:
+      tags:
+      - "Folder"
+      summary: "Get folders"
+      description: ""
+      operationId: "getFolders"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "List of all folders"
+          schema:
+            $ref: "#/definitions/Folder"
+    post:
+      tags:
+      - "Folder"
+      summary: "Create folder"
+      description: ""
+      operationId: "createFolder"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: ""
+        required: true
+        schema:
+          $ref: "#/definitions/Folder"
+      responses:
+        "201":
+          description: "Created Folder"
+          schema:
+            $ref: "#/definitions/Folder"
+
+  /api/v1.0/folders/{id}:
+    get:
+      tags:
+      - "Folder"
+      summary: "Retrieve folder"
+      description: ""
+      operationId: "retrieveFolder"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of folder to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Folder object"
+          schema:
+            $ref: "#/definitions/Folder"
+    patch:
+      tags:
+      - "Folder"
+      summary: "Update Folder"
+      description: ""
+      operationId: "updateFolder"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of folder to update"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Updated folder object"
+          schema:
+            $ref: "#/definitions/Folder"
+    delete:
+      tags:
+      - "Folder"
+      summary: "Delete folder"
+      description: ""
+      operationId: "deleteFolder"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of folder to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "204":
+          description: ""
+
+  /api/v1.0/contacts/:
+    get:
+      tags:
+      - "Contact"
+      summary: "List contacts"
+      description: ""
+      operationId: "listContact"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "List of all contacts"
+          schema:
+            $ref: "#/definitions/Contact"
+    post:
+      tags:
+      - "Contact"
+      summary: "Create contact"
+      description: ""
+      operationId: "createContact"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Contact"
+        required: true
+        schema:
+          $ref: "#/definitions/Contact"
+      responses:
+        "201":
+          description: "Created contact"
+          schema:
+            $ref: "#/definitions/Contact"
+
+  /api/v1.0/contacts/{id}:
+    get:
+      tags:
+      - "Contact"
+      summary: "Retrieve contact"
+      description: ""
+      operationId: "retrieveContact"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of contact to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Contact object"
+          schema:
+            $ref: "#/definitions/Contact"
+
+    patch:
+      tags:
+      - "Contact"
+      summary: "Update Contact"
+      description: ""
+      operationId: "updateContact"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of contact to update"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Updated contact object"
+          schema:
+            $ref: "#/definitions/Contact"
+    delete:
+      tags:
+      - "Contact"
+      summary: "Delete contact"
+      description: ""
+      operationId: "deleteContact"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of contact to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "204":
+          description: ""
+
+  /api/v1.0/templates/:
+    get:
+      tags:
+      - "Template"
+      summary: "List template"
+      description: ""
+      operationId: "listTemplate"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "List of all templates"
+          schema:
+            $ref: "#/definitions/Template"
+    post:
+      tags:
+      - "Template"
+      summary: "Create template"
+      description: ""
+      operationId: "createTemplate"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: ""
+        required: true
+        schema:
+          $ref: "#/definitions/Template"
+      responses:
+        "201":
+          description: "Created template"
+          schema:
+            $ref: "#/definitions/Template"
+
+  /api/v1.0/templates/{id}:
+    get:
+      tags:
+      - "Template"
+      summary: "Retrieve template"
+      description: ""
+      operationId: "retrieveTemplate"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of template to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Template object"
+          schema:
+            $ref: "#/definitions/Template"
+    patch:
+      tags:
+      - "Template"
+      summary: "Update Template"
+      description: ""
+      operationId: "updateTemplate"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of template to update"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "Updated template object"
+          schema:
+            $ref: "#/definitions/Template"
+    delete:
+      tags:
+      - "Template"
+      summary: "Delete template"
+      description: ""
+      operationId: "deleteTemplate"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of template to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "204":
+          description: ""
+
+definitions:
+  Mailbox:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      smtp_host:
+        type: "string"
+        format: "hostname"
+      smtp_port:
+        type: "integer"
+      smtp_secure:
+        type: "string"
+      owner:
+        type: "integer"
+        readOnly: true
+      shared:
+        type: "boolean"
+      name:
+        type: "string"
+      active:
+        type: "boolean"
+      email:
+        type: "string"
+        format: "email"
+      imap_host:
+        type: "string"
+        format: "host"
+      imap_port:
+        type: "integer"
+      last_pooling:
+        type: "string"
+        format: "date-time"
+      custom_query:
+        type: "string"
+      imap_secure:
+        type: "string"
+    required:
+      - smtp_host
+      - smtp_port
+      - name
+      - password
+      - email
+      - imap_host
+      - imap_port
+  Mail:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      mailbox:
+        type: "integer"
+      subject:
+        type: "string"
+      body:
+        type: "string"
+      to:
+        type: "array"
+        items:
+          type: "string"
+          format: "email"
+      bcc:
+        type: "string"
+      encoded:
+        type: "boolean"
+        readOnly: true
+      from_addresses:
+        type: "array"
+        items:
+          type: "string"
+          format: "email"
+        readOnly: true
+      id_read:
+        type: "boolean"
+      read_date:
+        type: "string"
+        format: "date-time"
+        readOnly: true
+      outgoing:
+        type: "boolean"
+        readOnly: true
+      in_reply_to:
+        type: "integer"
+      mail_replies:
+        type: "array"
+        items:
+          type: "string"
+          format: "email"
+        readOnly: true
+      attachments:
+        type: "array"
+        items:
+          type: "integer"
+      created_at:
+        type: "string"
+        format: "date-time"
+        readOnly: true
+      message_id:
+        type: "string"
+        readOnly: true
+      chain:
+        type: "string"
+        format: "uuid"
+        readOnly: true
+      draft:
+        type: "boolean"
+    required:
+      - mailbox
+      - to
+  Folder:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      name:
+        type: "string"
+      owner:
+        type: "integer"
+    required:
+      - name
+  Contact:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      email:
+        type: "string"
+        format: "email"
+      name:
+        type: "string"
+      folder:
+        type: "integer"
+    required:
+      - name
+  Template:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      name:
+        type: "string"
+      owner:
+        type: "integer"
+      alias:
+        type: "string"
+      subject:
+        type: "string"
+      body:
+        type: "string"
+    required:
+      - name
+      - alias
+      - subject

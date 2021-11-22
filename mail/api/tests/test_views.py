@@ -1,9 +1,10 @@
+from unittest import mock
+
 from datetime import datetime
 
 from django.conf import settings
 from hamcrest import *
-from rest_framework.status import HTTP_404_NOT_FOUND
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from rest_framework.test import APITestCase
 from rest_framework.test import APIClient
 
@@ -50,8 +51,8 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
     def test_create_mailbox(self):
         request_data = {
             "name": "cool",
-            "email": "testmirrorcx@gmail.com",
-            "password": "qazxqazx",
+            "email": "email@example.com",
+            "password": "demo",
             "imap_host": "imap.gmail.com",
             "imap_port": 993,
             "smtp_host": "smtp.gmail.com",
@@ -60,8 +61,35 @@ class MailboxViewSetTestCase(MailTestMixin, APITestCase):
             "imap_secure": "ssl",
             "active": True
         }
+
+        mocked_date = {
+            "name": "cool",
+            "from_email": "demo@gmail.com",
+            "uri": "imap+ssl://myusername:mypassword@someserver",
+            "active": True
+        }
+        with mock.patch('mail.api.serializers.TroodMailboxSerializer.validate', mock.Mock(return_value=mocked_date)):
+            response = self.client.post('/api/v1.0/mailboxes/', request_data, format='json')
+            print(response.json())
+            assert_that(response.status_code, is_(HTTP_201_CREATED))
+
+    def test_failed_creating_mailbox(self):
+        request_data = {
+            "name": "cool",
+            "email": "email@example.com",
+            "password": "demo",
+            "imap_host": "imap.gmail.com",
+            "imap_port": 993,
+            "smtp_host": "smtp.gmail.com",
+            "smtp_port": 465,
+            "smtp_secure": "ssl",
+            "imap_secure": "ssl",
+            "active": True
+        }
+
         response = self.client.post('/api/v1.0/mailboxes/', request_data, format='json')
-        assert_that(response.status_code, is_(HTTP_201_CREATED))
+        assert_that(response.status_code, is_(HTTP_400_BAD_REQUEST))
+        assert_that(response.json()['non_field_errors'], is_(["SMTP server login error: invalid email or password"]))
 
     def test_fetch_single_mailbox(self):
         content = self.maildir.create_mail('eugene', 'dharmagetic@gmail.com')
