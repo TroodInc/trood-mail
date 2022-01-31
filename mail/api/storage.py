@@ -5,7 +5,7 @@ from django.core.files.storage import Storage
 from rest_framework import status
 
 from mail.api.utils import build_absolute_url
-from trood_auth_client.authentication import get_service_token
+from trood.core.utils import get_service_token
 
 class TroodFile(ContentFile):
     def __init__(self, content, options):
