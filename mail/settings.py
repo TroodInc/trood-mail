@@ -183,8 +183,11 @@ class BaseConfiguration(Configuration):
     SERVICE_DOMAIN = os.environ.get("SERVICE_DOMAIN", "MAIL")
     SERVICE_AUTH_SECRET = os.environ.get("SERVICE_AUTH_SECRET")
 
-    DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
-    DEFAULT_FILE_STORAGE_HOST = 'http://fileservice:8000/'
+    FILE_STORAGE_TYPE = os.environ.get('FILE_STORAGE_TYPE')
+
+    if FILE_STORAGE_TYPE == "TROOD":
+        DEFAULT_FILE_STORAGE = 'mail.api.storage.TroodFileStorage'
+        DEFAULT_FILE_STORAGE_HOST = os.environ.get('DEFAULT_FILE_STORAGE_HOST')
 
     AUTH_TYPE = os.environ.get('AUTHENTICATION_TYPE')
 
