@@ -43,7 +43,7 @@ class TroodFileStorage(Storage):
                 return TroodFile(response.raw, file_data)
             raise FileNotFoundError("File http:{} does not exists".format(file_data['file_url']))
 
-        raise FileNotFoundError("File with id:{} does not exists".format(name))
+        raise FileNotFoundError("File with id:{} does not exists".format(detail_file_url))
 
     def _save(self, name, content):
         try:
