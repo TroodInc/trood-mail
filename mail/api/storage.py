@@ -38,7 +38,7 @@ class TroodFileStorage(Storage):
         if response.status_code == status.HTTP_200_OK:
             file_data = response.json()
 
-            response = requests.get(build_absolute_url(self.host, file_data['file_url'], trailing_slash=False), stream=True)
+            response = requests.get('http:' + file_data['file_url'], stream=True)
             if response.status_code == status.HTTP_200_OK:
                 return TroodFile(response.raw, file_data)
 
