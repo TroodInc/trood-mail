@@ -41,6 +41,7 @@ class TroodFileStorage(Storage):
             response = requests.get('http:' + file_data['file_url'], stream=True)
             if response.status_code == status.HTTP_200_OK:
                 return TroodFile(response.raw, file_data)
+            raise FileNotFoundError("File http:{} does not exists".format(file_data['file_url']))
 
         raise FileNotFoundError("File with id:{} does not exists".format(name))
 
