@@ -18,7 +18,7 @@ Jinja2==2.10
 MarkupSafe==1.1.1
 more-itertools==4.2.0
 pluggy==0.6.0
-psycopg2==2.7.3.1
+psycopg2-binary==2.8
 py==1.5.3
 PyHamcrest==1.9.0
 pytest==3.4.2
@@ -37,4 +37,4 @@ raven==6.9.0
 teamcity-messages==1.28
 dj_database_url
 
-trood==1.0.6
+trood==1.0.7
