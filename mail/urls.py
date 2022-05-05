@@ -4,7 +4,7 @@ from django.conf.urls import url, include
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from rest_framework import routers
-from rest_framework.documentation import include_docs_urls
+from trood.contrib.django.apps.fixtures.views import TroodFixturesViewSet
 
 from mail.api.views import MailboxViewSet, MailViewSet, FolderViewSet, ContactViewSet, ChainViewSet, TemplateViewSet
 from trood.contrib.django.apps.meta.views import TroodMetaView
@@ -18,13 +18,15 @@ router.register(r'contacts', ContactViewSet, base_name="contacts")
 router.register(r'chains', ChainViewSet,  base_name="chains")
 router.register(r'templates', TemplateViewSet,  base_name="templates")
 
+if settings.DEBUG:
+    router.register(r'fixtures', TroodFixturesViewSet, base_name='fixtures')
+
 urlpatterns = [
     url(r'meta', TroodMetaView.as_view(), name='meta'),
     url(r'^api/v1.0/', include((router.urls, "mail"), namespace='api')),
 ]
-if settings.DEBUG:
-    urlpatterns.append(url(r'^docs/', include_docs_urls(title='Trood Email')))
 
+if settings.DEBUG:
     urlpatterns += [
         url('swagger/', TemplateView.as_view(template_name='swagger_ui.html'), name='swagger-ui'),
     ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
