@@ -1,6 +1,6 @@
 import smtplib
 from email import encoders
-from importlib._common import _
+from django.utils.translation import ugettext_lazy as _
 
 from django.db import models
 from email.mime.base import MIMEBase
