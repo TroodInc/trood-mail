@@ -10,6 +10,12 @@ else:
 
 
 class EmailTransport(object):
+    def __init__(self, config=None):
+        if config and self.config_class:
+            serializer = self.config_class(data=config)
+            if serializer.is_valid():
+                self.config = serializer.validated_data
+
     def get_email_from_bytes(self, contents):
         if six.PY3:
             message = email.message_from_bytes(contents)

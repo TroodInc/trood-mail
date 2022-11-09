@@ -8,3 +8,10 @@ from mail.api.transports.babyl import BabylTransport
 from mail.api.transports.mh import MHTransport
 from mail.api.transports.mmdf import MMDFTransport
 from mail.api.transports.gmail import GmailImapTransport
+from mail.api.transports.smtp import SMTPTransport
+from mail.api.transports.unisender import UnisenderTransport
+
+OUTGOING = {
+    "smtp": SMTPTransport,
+    "unisender": UnisenderTransport
+}
