@@ -9,17 +9,16 @@ import gzip
 import uuid
 import email
 import base64
-import smtplib
 import logging
 import os.path
 import mimetypes
 
-from email import encoders
 from email.utils import parseaddr
-from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.message import EmailMessage
 from email import utils as email_utils
+
+from jsonfield import JSONField
 from tempfile import NamedTemporaryFile
 from email.encoders import encode_quopri
 from email.encoders import encode_base64
@@ -43,7 +42,7 @@ import mail.api.utils as utils
 from mail.api.signals import message_received
 from mail.api.transports import Pop3Transport, ImapTransport, \
     MaildirTransport, MboxTransport, BabylTransport, MHTransport, \
-    MMDFTransport, GmailImapTransport
+    MMDFTransport, GmailImapTransport, OUTGOING
 
 logger = logging.getLogger(__name__)
 
@@ -267,32 +266,7 @@ class Mail(models.Model):
         ordering = ['-processed']
 
     def send(self):
-        msg = self.get_email_object()
-
-        for attachment in self.attachments.all():
-            meta = attachment.document.file.meta
-
-            file = MIMEBase(*attachment.document.file.type.split('/'), filename=meta['filename'])
-            file.set_payload(attachment.document.file.read())
-            encoders.encode_base64(file)
-
-            file.add_header('Content-Disposition', 'attachment; filename="{}"'.format(meta['filename']))
-            file.add_header('Content-ID', '<{}>'.format(meta['id']))
-            file.add_header('X-Attachment-Id', meta['id'])
-            msg.attach(file)
-
-        if self.mailbox.smtp_secure == "ssl":
-            server = smtplib.SMTP_SSL(self.mailbox.smtp_host, self.mailbox.smtp_port)
-        elif self.mailbox.smtp_secure == "tls":
-            server = smtplib.SMTP(self.mailbox.smtp_host, self.mailbox.smtp_port)
-            server.starttls()
-        else:
-            server = smtplib.SMTP(self.mailbox.smtp_host, self.mailbox.smtp_port)
-
-        server.login(self.mailbox.from_email, self.mailbox.password)
-        server.send_message(msg=msg)
-        server.quit()
-
+        self.mailbox.out_transport.send(message=self)
         self.outgoing = True
         self.save()
 
@@ -449,20 +423,16 @@ class ActiveMailboxManager(models.Manager):
 
 
 class Mailbox(models.Model):
-    TLS = 'tls'
-    SSL = 'ssl'
-
-    SECURE_TYPES = (
-        (TLS, "TLS"),
-        (SSL, "SSL"),
+    out_type = models.CharField(
+        _(u'Outgoing transport'),
+        choices=((i.name, _(i.title)) for i in OUTGOING.values()),
+        max_length=128,
+        null=True
     )
+    out_config = JSONField(null=True)
 
     name = models.CharField(_(u'Name'), max_length=255,)
     owner = models.IntegerField(_('Owner'), null=True, default=None)
-
-    smtp_host = models.CharField(max_length=128)
-    smtp_port = models.IntegerField(default=465)
-    smtp_secure = models.CharField(choices=SECURE_TYPES, max_length=4, null=True, default=SSL)
 
     custom_query = models.CharField(max_length=512, null=True)
 
@@ -583,6 +553,10 @@ class Mailbox(models.Model):
         if not folder:
             return None
         return folder[0]
+
+    @property
+    def out_transport(self):
+        return OUTGOING[self.out_type](self.out_config)
 
     def get_connection(self):
         """Returns the transport instance for this mailbox.

@@ -1,6 +1,6 @@
-import smtplib
 from datetime import datetime
-from urllib.parse import urlparse, urlencode, quote_plus
+from rest_framework.fields import JSONField
+from urllib.parse import urlparse, quote_plus
 
 from django.core.files.storage import default_storage
 from rest_framework import serializers
@@ -138,16 +138,15 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
     )
 
     imap_host = serializers.CharField(source="location")
-    email = serializers.EmailField(source="from_email", validators=[UniqueValidator(Mailbox.objects.all())])
-    password = serializers.CharField(write_only=True)
+    from_email = serializers.EmailField(validators=[UniqueValidator(Mailbox.objects.all())])
     imap_port = serializers.IntegerField(source="port", max_value=64535)
-    smtp_port = serializers.IntegerField(max_value=64535)
+    out_config = JSONField(required=False)
 
     class Meta:
         model = Mailbox
         fields = (
-            "id", "smtp_host", "smtp_port", "smtp_secure", "owner", "shared",  "name",
-            "active", "password", "email", "imap_host", "imap_port", "last_polling", "custom_query",
+            "id", "owner", "shared",  "name", "active", "out_type", "out_config",
+            "imap_host", "imap_port", "last_polling", "custom_query", "from_email"
         )
 
         read_only_fields = ("owner", "id")
@@ -166,49 +165,14 @@ class TroodMailboxSerializer(serializers.ModelSerializer):
 
         data = super(TroodMailboxSerializer, self).to_internal_value(data)
 
-        password = data.get("password", getattr(self.instance, "password", None))
+        # password = data.get("password", getattr(self.instance, "password", None))
         host = data.pop("location", getattr(self.instance, "location", None))
         port = data.pop("port", getattr(self.instance, "port", None))
         email = data.get("from_email", getattr(self.instance, "from_email", None))
 
-        data['uri'] = "imap{}://{}:{}@{}:{}".format(imap_secure, quote_plus(email), quote_plus(password), host, port)
+        data['uri'] = "imap{}://{}@{}:{}".format(imap_secure, quote_plus(email), host, port)
 
         return data
-
-    def validate(self, data):
-        validated_data = super().validate(data)
-
-        if 'smtp_host' in validated_data \
-                or 'smtp_port' in validated_data \
-                or 'from_email' in validated_data \
-                or 'password' in validated_data \
-                or 'smtp_secure' in validated_data:
-
-            secure = self._get_or_from_instance('smtp_secure', validated_data, self.instance)
-            host = self._get_or_from_instance('smtp_host', validated_data, self.instance)
-            port = self._get_or_from_instance('smtp_port', validated_data, self.instance)
-
-            try:
-                if secure == 'ssl':
-                    server = smtplib.SMTP_SSL(host, port, timeout=5)
-                elif secure == 'tls':
-                    server = smtplib.SMTP(host, port, timeout=5)
-                    server.starttls()
-                else:
-                    server = smtplib.SMTP(host, port, timeout=5)
-
-                email = validated_data.get('from_email', getattr(self.instance, 'from_email', ""))
-                password = validated_data.pop('password', getattr(self.instance, 'password', ""))
-
-                server.login(email, password)
-                server.quit()
-            except smtplib.SMTPAuthenticationError as e:
-                error_message = f'SMTP server login error: invalid email or password'
-                raise ValidationError(error_message)
-            except Exception as e:
-                raise ValidationError(f'Smtp Connection settings wrong: {e}')
-
-        return validated_data
 
     def to_representation(self, instance):
         data = super(TroodMailboxSerializer, self).to_representation(instance)
